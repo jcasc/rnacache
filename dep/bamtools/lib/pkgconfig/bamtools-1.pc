@@ -1,0 +1,10 @@
+libdir=/metacache/dep/bamtools/lib
+includedir=/metacache/dep/bamtools/include
+
+Name: BamTools
+Description: BamTools is a C++ library for reading and manipulating BAM files
+Version: 2.5.1
+
+Requires.private: zlib jsoncpp
+Libs: -L${libdir} -lbamtools
+Cflags: -I${includedir}
