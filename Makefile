@@ -1,4 +1,11 @@
 #--------------------------------------------------------------------
+# htslib options
+#--------------------------------------------------------------------
+HTS_INCLUDE = dep/htslib/include/htslib
+HTS_LIB = dep/htslib/lib/libhts.a
+
+
+#--------------------------------------------------------------------
 # names & flags
 #--------------------------------------------------------------------
 ARTIFACT     = rnacache
@@ -10,7 +17,7 @@ OPTIMIZATION = -O3
 #-march native -fomit-frame-pointer 
 
 ifeq ($(RC_BAM), TRUE)
-    DEP_CXXFLAGS = -Idep/htslib/include/htslib -DRC_BAM
+    DEP_CXXFLAGS = -I$(HTS_INCLUDE) -DRC_BAM
 endif
 
 REL_CXXFLAGS = $(INCLUDES) $(MACROS) $(DIALECT) $(OPTIMIZATION) $(WARNINGS) $(DEP_CXXFLAGS)
@@ -18,7 +25,7 @@ DBG_CXXFLAGS = $(INCLUDES) $(MACROS) $(DIALECT) -O0 -g $(WARNINGS) $(DEP_CXXFLAG
 PRF_CXXFLAGS = $(INCLUDES) $(MACROS) $(DIALECT) $(OPTIMIZATION) -g $(WARNINGS) $(DEP_CXXFLAGS)
 
 ifeq ($(RC_BAM), TRUE)
-    STATIC_LIBS  = dep/htslib/lib/libhts.a 
+    STATIC_LIBS  = $(HTS_LIB)
     DEP_LDFLAGS  = -lz -llzma -lbz2
 endif
 

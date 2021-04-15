@@ -1,10 +1,10 @@
 /******************************************************************************
  *
- * MetaCache - Meta-Genomic Classification Tool
+ * RNACache - Transcriptomic Mapping Tool
  *
- * Copyright (C) 2016-2019 André Müller   (muellan@uni-mainz.de)
+ * Copyright (C) 2016-2021 Julian Cascitti (jcascitt@students.uni-mainz.de)
+ *                       & André Müller   (muellan@uni-mainz.de)
  *                       & Robin Kobus    (rkobus@uni-mainz.de)
- *                       & Julian Cascitti (jcascitt@students.uni-mainz.de)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@
 #include "../dep/edlib.h"
 
 #ifdef RC_BAM
-#include "sam.h"
+#include <sam.h>
 #endif
 
 
@@ -380,7 +380,7 @@ struct alignment_targets {
         os << "@HD\tVN:1.0 SO:unsorted\n";
         for(const auto& tgt: targets_)
             os << "@SQ\tSN:" << tgt.header << "\tLN:" << tgt.seq.size() << '\n';
-        os << "@PG\tID:metacache\tPN:metacache\tVN:" << MC_VERSION_STRING << '\n';
+        os << "@PG\tID:rnaache\tPN:rnaache\tVN:" << MC_VERSION_STRING << '\n';
     }
 
     std::string get_sam_header() const {

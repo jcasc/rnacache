@@ -222,7 +222,7 @@ enum class map_view_mode : unsigned char {
  *****************************************************************************/
 struct taxon_print_style {
     bool showName = true;
-    bool showRankName = true;
+    bool showRankName = false;
     bool showId = false;
 };
 

@@ -41,7 +41,7 @@ void main_mode_help(const cmdline_args& args)
         }
         else {
             std::cout <<
-                "MetaCache  Copyright (C) 2016-2020  André Müller & Robin Kobus\n"
+                "RNACache Copyright (C) 2016-2021 Julian Cascitti & André Müller & Robin Kobus\n"
                 "This program comes with ABSOLUTELY NO WARRANTY.\n"
                 "This is free software, and you are welcome to redistribute it\n"
                 "under certain conditions. See the file 'LICENSE' for details.\n\n";
@@ -50,39 +50,38 @@ void main_mode_help(const cmdline_args& args)
         std::cout <<
             "USAGE:\n"
             "\n"
-            "    metacache <MODE> [OPTION...]\n"
+            "    rnacache <MODE> [OPTION...]\n"
             "\n"
             "    Available modes:\n"
             "\n"
             "    help        shows documentation \n"
             "    query       classify read sequences using pre-built database\n"
-            "    merge       merge classification results of independent queries\n"
-            "    build       build new database from reference sequences (usually genomes)\n"
-            "    modify      add reference sequences and/or taxonomy to existing database\n"
+            "    build       build new database from reference sequences\n"
+            "    modify      add reference sequences\n"
             "    info        show database and reference sequence properties\n"
             "\n"
             "\n"
             "EXAMPLES:\n"
             "\n"
             "    Query single FASTA file 'myreads.fna' against pre-built database 'refseq':\n"
-            "        metacache query refseq myreads.fna -out results.txt\n"
+            "        rnacache query refseq myreads.fna -out results.txt\n"
             "    same with output to the console:\n"
-            "        metacache query refseq myreads.fna\n"
+            "        rnacache query refseq myreads.fna\n"
             "\n"
             "    Query all sequence files in folder 'test' againgst database 'refseq':\n"
-            "        metacache query refseq test -out results.txt\n"
+            "        rnacache query refseq test -out results.txt\n"
             "\n"
             "    Query paired-end reads in separate files:\n"
-            "        metacache query refseq reads1.fa reads2.fa -pairfiles -out results.txt\n"
+            "        rnacache query refseq reads1.fa reads2.fa -pairfiles -out results.txt\n"
             "\n"
             "    Query paired-end reads in one file (a1,a2,b1,b2,...):\n"
-            "        metacache query refseq paired_reads.fa -pairseq -out results.txt\n"
+            "        rnacache query refseq paired_reads.fa -pairseq -out results.txt\n"
             "    \n"
             "    View documentation for query mode:\n"
-            "        metacache help query\n"
+            "        rnacache help query\n"
             "\n"
             "    View documentation on how to build databases:\n"
-            "        metacache help build\n";
+            "        rnacache help build\n";
     }
     else if(args[2] == "build") {
         std::cout << build_mode_docs() << '\n';
@@ -108,7 +107,6 @@ void main_mode_help(const cmdline_args& args)
             << "    build\n"
             << "    modify\n"
             << "    query\n"
-            << "    merge\n"
             << "    info\n";
     }
 }

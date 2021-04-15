@@ -1,0 +1,60 @@
+SYNOPSIS
+
+    rnacache info [<database> ]
+    rnacache info [<database> reference [<sequence_id>]... ]
+    rnacache info [<database> rank <rank_name> ]
+    rnacache info [<database> lineages ]
+    rnacache info [<database> statistics ]
+    rnacache info [<database> locations ]
+    rnacache info [<database> featurecounts ]
+
+
+DESCRIPTION
+
+    Display (meta-)information stored in a database.
+
+
+SUB-MODES
+
+    rnacache info
+        show basic properties of RNACache executable (data type widths, etc.)
+
+    matacache info <database>
+        show basic properties of <database>
+
+    matacache info <database> ref[erence]
+       list meta information for all reference sequences in <database>
+
+    matacache info <database> ref[erence] <sequence_id>...
+       list meta information for specific reference sequences
+
+    matacache info <database> stat[istics]
+       print database statistics / hash table properties
+
+    matacache info <database> loc[ations]
+       print map (feature -> list of reference locations)
+
+    matacache info <database> featurecounts
+       print map (feature -> number of reference locations)
+
+
+PARAMETERS
+
+    <database>        database file name;
+                      An RNACache database contains min-hash signatures of
+                      reference sequences.
+
+    <rank_name>       Valid values: sequence, form, variety, subspecies,
+                      species, subgenus, genus, subtribe, tribe, subfamily,
+                      family, suborder, order, subclass, class, subphylum,
+                      phylum, subkingdom, kingdom, domain
+
+
+EXAMPLES
+
+    List metadata for all reference sequences in database 'refseq':
+        rnacache info refseq.db ref
+
+    List metadata for the sequence with id NC_12345.6 in database 'refseq':
+        rnacache info refseq.db ref NC_12345.6
+

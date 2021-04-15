@@ -94,7 +94,7 @@ void database::read(const std::string& filename, scope what)
     if(uint64_t( MC_DB_VERSION ) != dbVer) {
         throw file_read_error{
             "Database " + filename + " (version " + std::to_string(dbVer) + ")"
-            + " is incompatible\nwith this version of MetaCache"
+            + " is incompatible\nwith this version of RNACache"
             + " (uses version " + std::to_string(MC_DB_VERSION) + ")" };
     }
 
@@ -115,7 +115,7 @@ void database::read(const std::string& filename, scope what)
         {
             throw file_read_error{
                 "Database " + filename +
-                " is incompatible with this variant of MetaCache" +
+                " is incompatible with this variant of RNACache" +
                 " due to different data type sizes"};
         }
 
@@ -124,7 +124,7 @@ void database::read(const std::string& filename, scope what)
         {
             throw file_read_error{
                 "Database " + filename +
-                " is incompatible with this variant of MetaCache" +
+                " is incompatible with this variant of RNACache" +
                 " due to different taxonomy data types"};
         }
     }

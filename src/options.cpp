@@ -217,7 +217,7 @@ void raise_default_error(const error_messages& err,
 
     if(!mode.empty()) {
         msg += "\nYou can view the full interface documentation of mode '"s
-            + mode + "' with:\n    metacache help " + mode + " | less";
+            + mode + "' with:\n    rnacache help " + mode + " | less";
     }
 
     throw std::invalid_argument{std::move(msg)};
@@ -244,9 +244,8 @@ database_parameter(string& filename, error_messages& err)
         .call([&](const string& arg){ filename = sanitize_database_name(arg); })
         .if_missing([&]{ err += "Database filename is missing!"; })
         .doc("database file name;\n"
-             "A MetaCache database contains taxonomic information and "
-             "min-hash signatures of reference sequences "
-             "(complete genomes, scaffolds, contigs, ...).\n");
+             "An RNACache database contains "
+             "min-hash signatures of reference sequences.\n");
 }
 
 
@@ -283,15 +282,17 @@ taxonomy_cli(taxonomy_options& opt, error_messages& err)
         value("path", opt.path)
             .if_missing([&]{ err += "Taxonomy path is missing after '-taxonomy'!"; })
     )
-        % "directory with taxonomic hierarchy data (see NCBI's taxonomic data files)\n"
+        // % "directory with taxonomic hierarchy data (see NCBI's taxonomic data files)\n"
+        % "Unavailable in RNACache.\n"
     ,
     (   option("-taxpostmap") &
         values("file", opt.mappingPostFiles)
             .if_missing([&]{ err += "Taxonomy mapping files are missing after '-taxpostmap'!"; })
     )
-        % "Files with sequence to taxon id mappings that are used "
-          "as alternative source in a post processing step.\n"
-          "default: 'nucl_(gb|wgs|est|gss).accession2taxid'"
+        // % "Files with sequence to taxon id mappings that are used "
+        //   "as alternative source in a post processing step.\n"
+        //   "default: 'nucl_(gb|wgs|est|gss).accession2taxid'"
+        % "Unavailable in RNACache.\n"
     );
 
 }
@@ -470,9 +471,7 @@ build_mode_cli(build_options& opt, error_messages& err)
             .if_missing([&]{
                 err += "No reference sequence files provided or found!";
             })
-            % "FASTA or FASTQ files containing genomic sequences "
-              "(complete genomes, scaffolds, contigs, ...) that shall be"
-              "used as representatives of an organism/taxon.\n"
+            % "FASTA or FASTQ files containing transcriptomic sequences.\n"
               "If directory names are given, they will be searched for "
               "sequence files (at most 10 levels deep).\n"
     ),
@@ -487,10 +486,7 @@ build_mode_cli(build_options& opt, error_messages& err)
     "ADVANCED OPTIONS" %
     (
         option("-reset-taxa", "-reset-parents").set(opt.resetParents)
-            %("Attempts to re-rank all sequences after the main build phase "
-              "using '.accession2taxid' files. This will reset the taxon id "
-              "of a reference sequence even if a taxon id could be obtained "
-              "from other sources during the build phase.\n"
+            %("Unavailable in RNACache.\n"
               "default: "s + (opt.resetParents ? "on" : "off"))
         ,
         database_storage_options_cli(opt.dbconfig, err)
@@ -533,8 +529,8 @@ get_build_options(const cmdline_args& args, build_options opt)
 //-------------------------------------------------------------------
 string build_mode_usage() {
     return
-    "    metacache build <database> <sequence file/directory>... [OPTION]...\n\n"
-    "    metacache build <database> [OPTION]... <sequence file/directory>...";
+    "    rnacache build <database> <sequence file/directory>... [OPTION]...\n\n"
+    "    rnacache build <database> [OPTION]... <sequence file/directory>...";
 }
 
 
@@ -542,20 +538,14 @@ string build_mode_usage() {
 //-------------------------------------------------------------------
 string build_mode_examples() {
     return
-    "    Build database 'mydb' from sequence file 'genomes.fna':\n"
-    "        metacache build mydb genomes.fna\n"
-    "\n"
-    "    Build database with latest complete genomes from the NCBI RefSeq\n"
-    "        download-ncbi-genomes refseq/bacteria myfolder\n"
-    "        download-ncbi-genomes refseq/viruses myfolder\n"
-    "        download-ncbi-taxonomy myfolder\n"
-    "        metacache build myRefseq myfolder -taxonomy myfolder\n"
+    "    Build database 'mydb' from sequence file 'transcfipts.fa':\n"
+    "        rnacache build mydb genomes.fa\n"
     "\n"
     "    Build database 'mydb' from two sequence files:\n"
-    "        metacache build mydb mrsa.fna ecoli.fna\n"
+    "        rnacache build mydb one.fa two.fa\n"
     "\n"
-    "    Build database 'myBacteria' from folder containing sequence files:\n"
-    "        metacache build myBacteria all_bacteria\n";
+    "    Build database 'myTranscriptome' from folder containing sequence files:\n"
+    "        rnacache build myTranscriptome all_transcripts\n";
 }
 
 
@@ -575,7 +565,7 @@ string build_mode_docs() {
     docs += "\n\n\n"
         "DESCRIPTION\n"
         "\n"
-        "    Create a new database of reference sequences (usually genomic sequences).\n"
+        "    Create a new database of reference sequences.\n"
         "\n\n";
 
     docs += clipp::documentation(cli, cli_doc_formatting()).str();
@@ -613,9 +603,7 @@ modify_mode_cli(build_options& opt, error_messages& err)
             .if_missing([&]{
                 err += "No reference sequence files provided or found!";
             })
-            % "FASTA or FASTQ files containing genomic sequences "
-              "(complete genomes, scaffolds, contigs, ...) that shall be"
-              "used as representatives of an organism/taxon.\n"
+            % "FASTA or FASTQ files containing transcriptomic sequences.\n"
               "If directory names are given, they will be searched for "
               "sequence files (at most 10 levels deep).\n"
     ),
@@ -628,10 +616,7 @@ modify_mode_cli(build_options& opt, error_messages& err)
     (
         option("-reset-taxa", "-reset-parents")
             .set(opt.resetParents)
-            %("Attempts to re-rank all sequences after the main build phase "
-              "using '.accession2taxid' files. This will reset the taxon id "
-              "of a reference sequence even if a taxon id could be obtained "
-              "from other sources during the build phase.\n"
+            %("Unavailable in RNACache.\n"
               "default: "s + (opt.resetParents ? "on" : "off"))
         ,
         database_storage_options_cli(opt.dbconfig, err)
@@ -687,8 +672,8 @@ get_modify_options(const cmdline_args& args, modify_options opt)
 //-------------------------------------------------------------------
 string modify_mode_usage() {
     return
-    "    metacache modify <database> <sequence file/directory>... [OPTION]...\n\n"
-    "    metacache modify <database> [OPTION]... <sequence file/directory>...";
+    "    rnacache modify <database> <sequence file/directory>... [OPTION]...\n\n"
+    "    rnacache modify <database> [OPTION]... <sequence file/directory>...";
 }
 
 
@@ -696,12 +681,8 @@ string modify_mode_usage() {
 //-------------------------------------------------------------------
 string modify_mode_examples() {
     return
-    "    Add reference sequence 'penicillium.fna' to database 'fungi'\n"
-    "        metacache modify fungi penicillium.fna\n"
-    "\n"
-    "    Add taxonomic information from NCBI to database 'myBacteria'\n"
-    "        download_ncbi_taxonomy myTaxo\n"
-    "        metacache modify myBacteria -taxonomy myTaxo\n";
+    "    Add reference sequence 'added.fa' to database 'transcripts'\n"
+    "        rnacache modify transcripts added.fa\n";
 }
 
 
@@ -721,7 +702,7 @@ string modify_mode_docs() {
     docs += "\n\n\n"
         "DESCRIPTION\n"
         "\n"
-        "    Add reference sequence and/or taxonomic information to an existing database.\n"
+        "    Add reference sequence to an existing database.\n"
         "\n\n";
 
     docs += clipp::documentation(cli, cli_doc_formatting()).str();
@@ -757,9 +738,7 @@ classification_params_cli(classification_options& opt, error_messages& err)
             })
             .if_missing([&]{ err += "Taxonomic rank missing after '-lowest'!"; })
     )
-        %("Do not classify on ranks below <rank>\n"
-          "(Valid values: "s + taxon_rank_names() + ")\n"s +
-          "default: "s + taxonomy::rank_name(opt.lowestRank))
+        %("Unavailable in RNACache.")
     ,
     (   option("-highest") &
         value("rank", [&](const string& name) {
@@ -768,9 +747,7 @@ classification_params_cli(classification_options& opt, error_messages& err)
             })
             .if_missing([&]{ err += "Taxonomic rank missing after '-highest'!"; })
     )
-        %("Do not classify on ranks above <rank>\n"
-          "(Valid values: "s + taxon_rank_names() + ")\n"s +
-          "default: "s + taxonomy::rank_name(opt.highestRank))
+        %("Unavailable in RNACache.")
     ,
     (   option("-hitmin", "-hit-min", "-hits-min", "-hitsmin") &
         integer("t", opt.hitsMin)
@@ -786,32 +763,19 @@ classification_params_cli(classification_options& opt, error_messages& err)
         number("t", opt.hitsDiffFraction)
             .if_missing([&]{ err += "Number missing after '-hitdiff'!"; })
     )
-        %("Sets classification threshhold to <t>.\n"
-          "A read will not be classified if less than t features "
-          "from the database match. Higher values will increase "
-          "precision at the expense of sensitivity.\n"
-          "default: "s + to_string(opt.hitsMin))
+        %("Unavailable in RNACache.")
     ,
     (   option("-maxcand", "-max-cand") &
         integer("#", opt.maxNumCandidatesPerQuery)
             .if_missing([&]{ err += "Number missing after '-maxcand'!"; })
     )
-        %("maximum number of reference taxon candidates to "
-          "consider for each query;\n"
-          "A large value can significantly decrease the querying speed!.\n"
-          "default: "s + to_string(opt.maxNumCandidatesPerQuery))
+        %("Unavailable in RNACache.")
     ,
     (   option("-cov-percentile") &
         number("p", opt.covPercentile)
             .if_missing([&]{ err += "Number missing after '-cov-percentile'!"; })
     )
-        %("Remove the p-th percentile of hit reference sequences "
-          "with the lowest coverage. Classification is done using "
-          "only the remaining reference sequences. "
-          "This can help to reduce false positives, especially when"
-          "your input data has a high sequencing coverage.\n"
-          "This feature decreases the querying speed!\n"
-          "default: "s + (opt.covPercentile > 1e-3 ? "on" : "off"))
+        %("Unavailable in RNACache.")
     ,   
         option("-hit-cutoff", "-cutoff", "-hits-cutoff", "-hitcutoff", "-hitscutoff") &
         number("t", opt.hitsCutoff)
@@ -897,11 +861,7 @@ classification_output_format_cli(classification_output_formatting& opt,
               "default: "s + (opt.showQueryIds ? "on" : "off"))
         ,
         option("-lineage", "-lineages").set(opt.showLineage)
-            %("Report complete lineage for per-read classification "
-              "starting with the lowest rank found/allowed and "
-              "ending with the highest rank allowed. See also "
-              "options '-lowest' and '-highest'.\n"
-              "default: "s + (opt.showLineage ? "on" : "off"))
+            %("Useless in RNACache.")
     );
 }
 
@@ -957,14 +917,7 @@ classification_analysis_cli(classification_analysis_options& opt, error_messages
                     .set(opt.showHitsPerTargetList) &
                 opt_value("file", opt.targetMappingsFile)
             )
-                %("Shows a list of all hits for each reference sequence.\n"
-                  "If this condensed list is all you need, you should "
-                  "deactive the per-read mapping output with '-no-map'.\n"
-                  "If a valid filename is given after '-hits-per-seq', "
-                  "the list will be written to a separate file.\n"
-                  "Option '-queryids' will be activated and the lowest "
-                  "classification rank will be set to 'sequence'.\n"
-                  "default: "s + (opt.showHitsPerTargetList ? "on" : "off"))
+                %("Unavailable in RNACache.")
         )
         ,
         "ANALYSIS: ALIGNMENTS" %
@@ -1079,12 +1032,12 @@ query_mode_cli(query_options& opt, error_messages& err)
         database_parameter(opt.dbfile, err)
         ,
         opt_values(match::prefix_not{"-"}, "sequence file/directory", opt.infiles)
-            % "FASTA or FASTQ files containing genomic sequences "
-              "(short reads, long reads, contigs, complete genomes, ...) "
+            % "FASTA or FASTQ files containing transcriptomic sequences "
+              "(short reads, long reads, ...) "
               "that shall be classified.\n"
               "* If directory names are given, they will be searched for "
               "sequence files (at most 10 levels deep).\n"
-              "* If no input filenames or directories are given, MetaCache will "
+              "* If no input filenames or directories are given, RNACache will "
               "run in interactive query mode. This can be used to load the database into "
               "memory only once and then query it multiple times with different "
               "query options. "
@@ -1281,9 +1234,9 @@ get_query_options(const cmdline_args& args, query_options opt)
 //-------------------------------------------------------------------
 string query_mode_usage() {
     return
-    "    metacache query <database>\n\n"
-    "    metacache query <database> <sequence file/directory>... [OPTION]...\n\n"
-    "    metacache query <database> [OPTION]... <sequence file/directory>...";
+    "    rnacache query <database>\n\n"
+    "    rnacache query <database> <sequence file/directory>... [OPTION]...\n\n"
+    "    rnacache query <database> [OPTION]... <sequence file/directory>...";
 }
 
 
@@ -1292,25 +1245,21 @@ string query_mode_usage() {
 string query_mode_examples() {
     return
     "    Query all sequences in 'myreads.fna' against pre-built database 'refseq':\n"
-    "        metacache query refseq myreads.fna -out results.txt\n"
+    "        rnacache query refseq myreads.fna -out results.txt\n"
     "\n"
     "    Query all sequences in multiple files against database 'refseq':\n"
-    "        metacache query refseq reads1.fna reads2.fna reads3.fna\n"
+    "        rnacache query refseq reads1.fna reads2.fna reads3.fna\n"
     "\n"
     "    Query all sequence files in folder 'test' againgst database 'refseq':\n"
-    "        metacache query refseq test\n"
+    "        rnacache query refseq test\n"
     "\n"
     "    Query multiple files and folder contents against database 'refseq':\n"
-    "        metacache query refseq file1.fna folder1 file2.fna file3.fna folder2\n"
-    "\n"
-    "    Perform a precision test and show all ranks for each classification result:\n"
-    "        metacache query refseq reads.fna -precision -allranks -out results.txt\n"
+    "        rnacache query refseq file1.fna folder1 file2.fna file3.fna folder2\n"
     "\n"
     "    Load database in interactive query mode, then query multiple read batches\n"
-    "        metacache query refseq\n"
+    "        rnacache query refseq\n"
     "        reads1.fa reads2.fa -pairfiles -insertsize 400\n"
-    "        reads3.fa -pairseq -insertsize 300\n"
-    "        reads4.fa -lineage\n";
+    "        reads3.fa -pairseq -insertsize 300\n";
 }
 
 
@@ -1329,8 +1278,8 @@ string query_mode_docs() {
     docs += "\n\n\n"
         "DESCRIPTION\n"
         "\n"
-        "    Map sequences (short reads, long reads, genome fragments, ...)\n"
-        "    to their most likely taxon of origin.\n"
+        "    Map sequences (short reads, long reads, ...)\n"
+        "    to their most likely reference sequence of origin.\n"
         "\n\n";
 
     docs += clipp::documentation(cli, cli_doc_formatting()).str();
@@ -1341,37 +1290,12 @@ string query_mode_docs() {
     docs += "\n\n"
         "OUTPUT FORMAT\n"
         "\n"
-        "    MetaCache's default read mapping output format is:\n"
-        "    read_header | rank:taxon_name\n"
-        "\n"
-        "    This will not be changed in the future to avoid breaking anyone's\n"
-        "    pipelines. Command line options won't change in the near future for the\n"
-        "    same reason. The following table shows some of the possible mapping\n"
-        "    layouts with their associated command line arguments:\n"
-        "\n"
-        "    read mapping layout                          command line arguments\n"
-        "    ---------------------------------------      ---------------------------------\n"
-        "    read_header | taxon_id                       -taxids-only -omit-ranks\n"
-        "    read_header | taxon_name                     -omit-ranks\n"
-        "    read_header | taxon_name(taxon_id)           -taxids -omit-ranks\n"
-        "    read_header | taxon_name | taxon_id          -taxids -omit-ranks -separate-cols\n"
-        "    read_header | rank:taxon_id                  -taxids-only\n"
-        "    read_header | rank:taxon_name\n"
-        "    read_header | rank:taxon_name(taxon_id)      -taxids\n"
-        "    read_header | rank | taxon_id                -taxids-only -separate-cols\n"
-        "    read_header | rank | taxon_name              -separate-cols\n"
-        "    read_header | rank | taxon_name | taxon_id   -taxids -separate-cols\n"
+        "    RNACache's default read mapping output format is:\n"
+        "    read_header | seq_name\n"
         "\n"
         "    Note that the separator '\\t|\\t' can be changed to something else with\n"
-        "    the command line option '-separator <text>'.\n"
-        "\n"
-        "    Note that the default lowest taxon rank is 'sequence'. Sequence-level taxon\n"
-        "    ids have negative numbers in order to not interfere with NCBI taxon ids.\n"
-        "    Each reference sequence is added as its own taxon below the\n"
-        "    lowest known NCBI taxon for that sequence. If you do not want to classify\n"
-        "    at sequence-level, you can set a higher rank as lowest classification rank\n"
-        "    with the '-lowest' command line option: '-lowest species' or\n"
-        "    '-lowest subspecies' or '-lowest genus', etc.\n";
+        "    the command line option '-separator <text>'.\n";
+        // TODO: add more information about cli-parameters.
 
     return docs;
 }
@@ -1388,7 +1312,7 @@ string query_mode_docs() {
  *
  *****************************************************************************/
 
-/// @brief build mode command-line options
+/// @brief merge mode command-line options
 clipp::group
 merge_mode_cli(merge_options& opt, error_messages& err)
 {
@@ -1504,55 +1428,21 @@ get_merge_options(const cmdline_args& args, merge_options opt)
 
 //-------------------------------------------------------------------
 string merge_mode_usage() {
-    return
-    "    metacache merge <result file/directory>... -taxonomy <path> [OPTION]...\n\n"
-    "    metacache merge -taxonomy <path> [OPTION]... <result file/directory>...";
+    return "Merge mode is not available in RNACache.";
 }
 
 
 
 //-------------------------------------------------------------------
 string merge_mode_examples() {
-    return "";
+    return "Merge mode is not available in RNACache.";
 }
 
 
 
 //-------------------------------------------------------------------
 string merge_mode_docs() {
-
-    merge_options opt;
-    error_messages err;
-    auto cli = merge_mode_cli(opt, err);
-
-    string docs = "SYNOPSIS\n\n";
-
-    docs += merge_mode_usage();
-
-    docs += "\n\n\n"
-        "DESCRIPTION\n"
-        "\n"
-        "    This mode classifies reads by merging the results of multiple, independent\n"
-        "    queries. These might have been obtained by querying one database with\n"
-        "    different parameters or by querying different databases with different\n"
-        "    reference sequences or build options.\n"
-        "\n"
-        "    IMPORTANT: In order to be mergable, independent queries\n"
-        "    need to be run with options:\n"
-        "        -tophits -queryids -lowest species\n"
-        "    and must NOT be run with options that suppress or alter default output\n"
-        "    like, e.g.: -no-map, -no-summary, -separator, etc.\n"
-        "\n"
-        "    Possible Use Case:\n"
-        "    If your system has not enough memory for one large database, you can\n"
-        "    split up the set of reference genomes into several databases and query these\n"
-        "    in succession. The results of these independent query runs can then be\n"
-        "    merged to obtain a classification based on the whole set of genomes.\n"
-        "\n\n";
-
-    docs += clipp::documentation(cli, cli_doc_formatting()).str();
-
-    return docs;
+    return "Merge mode is not available in RNACache.";
 }
 
 
@@ -1638,7 +1528,7 @@ string info_mode_usage()
     info_options opt;
     error_messages err;
     const auto cli = info_mode_cli(opt, err);
-    return clipp::usage_lines(cli, "metacache info", cli_usage_formatting()).str();
+    return clipp::usage_lines(cli, "rnacache info", cli_usage_formatting()).str();
 }
 
 
@@ -1647,13 +1537,10 @@ string info_mode_usage()
 string info_mode_examples() {
     return
     "    List metadata for all reference sequences in database 'refseq':\n"
-    "        metacache info refseq.db ref\n"
+    "        rnacache info refseq.db ref\n"
     "\n"
     "    List metadata for the sequence with id NC_12345.6 in database 'refseq':\n"
-    "        metacache info refseq.db ref NC_12345.6\n"
-    "\n"
-    "    List distribution of the number of sequences on rank 'phylum':\n"
-    "        metacache info refseq.db rank phylum\n";
+    "        rnacache info refseq.db ref NC_12345.6\n";
 }
 
 
@@ -1667,7 +1554,7 @@ string info_mode_docs() {
 
     string docs = "SYNOPSIS\n\n";
 
-    docs += clipp::usage_lines(cli, "metacache info", cli_usage_formatting()).str();
+    docs += clipp::usage_lines(cli, "rnacache info", cli_usage_formatting()).str();
 
     docs += "\n\n\n"
         "DESCRIPTION\n"
@@ -1676,8 +1563,8 @@ string info_mode_docs() {
         "\n\n"
         "SUB-MODES\n"
         "\n"
-        "    metacache info\n"
-        "        show basic properties of MetaCache executable (data type widths, etc.)\n"
+        "    rnacache info\n"
+        "        show basic properties of RNACache executable (data type widths, etc.)\n"
         "\n"
         "    matacache info <database>\n"
         "        show basic properties of <database>\n"
@@ -1687,12 +1574,6 @@ string info_mode_docs() {
         "\n"
         "    matacache info <database> ref[erence] <sequence_id>...\n"
         "       list meta information for specific reference sequences\n"
-        "\n"
-        "    matacache info <database> rank <rank_name>\n"
-        "       list reference sequence distribution on rank <rank_name>\n"
-        "\n"
-        "    matacache info <database> lin[eages]\n"
-        "       print table with ranked lineages for all reference sequences\n"
         "\n"
         "    matacache info <database> stat[istics]\n"
         "       print database statistics / hash table properties\n"

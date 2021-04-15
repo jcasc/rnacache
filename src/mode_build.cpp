@@ -326,7 +326,7 @@ void add_targets_to_database(database& db,
             cout << endl;
             cerr << "Reached maximum number of targets per database ("
                  << db.max_target_count() << ").\n"
-                 << "See 'README.md' on how to compile MetaCache with "
+                 << "See 'README.md' on how to compile RNACache with "
                  << "support for databases with more reference targets.\n";
         }
         else if(infoLvl == info_level::verbose) {
@@ -416,7 +416,7 @@ void prepare_database(database& db, const build_options& opt)
     if(db.non_target_taxon_count() < 1 && opt.infoLevel != info_level::silent) {
         cout << "The datbase doesn't contain a taxonomic hierarchy yet.\n"
              << "You can add one or update later via:\n"
-             << "   metacache modify <database> -taxonomy <directory>"
+             << "   rnacache modify <database> -taxonomy <directory>"
              << endl;
     }
 

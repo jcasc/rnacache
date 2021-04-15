@@ -1,4 +1,4 @@
-MetaCache Vocabulary
+RNACache Vocabulary
 =====================
 ```
  term        explanation
@@ -7,7 +7,7 @@ MetaCache Vocabulary
  rank        named level in the tree of life (species, genus, family , ...)
 
  query       read or pair of reads to be classified
- target      (genomic) reference sequence
+ target      (transcriptomic) reference sequence
 
  window      sequence of w consecutive characters used for constructing a sketch
  kmer        sequence of k < w consecutive characters within a window

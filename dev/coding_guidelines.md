@@ -1,4 +1,4 @@
-MetaCache Coding Guidelines
+RNACache Coding Guidelines
 ===========================
 
 Project
