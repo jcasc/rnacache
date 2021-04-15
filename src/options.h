@@ -238,7 +238,7 @@ struct performance_tuning_options {
     //limits number of reads per sequence source (file)
     std::int_least64_t queryLimit = std::numeric_limits<std::int_least64_t>::max();
 
-    #ifdef MC_BAM
+    #ifdef RC_BAM
     size_t bamBufSize = 25;
     int bamThreads = std::thread::hardware_concurrency();
 

@@ -41,8 +41,8 @@
 
 #include "../dep/edlib.h"
 
-#ifdef MC_BAM
-#include "../dep/htslib/include/htslib/sam.h"
+#ifdef RC_BAM
+#include "sam.h"
 #endif
 
 
@@ -55,7 +55,7 @@ using std::cerr;
 using std::endl;
 using std::flush;
 
-#ifdef MC_BAM
+#ifdef RC_BAM
 using bam_vector = std::vector<bam1_t>;
 #endif
 
@@ -248,7 +248,7 @@ void evaluate_classification(
     statistics.mapped(cls.candidates.size());
 }
 
-#ifdef MC_BAM
+#ifdef RC_BAM
 struct bam_buffer
 {
     bam_vector vec;
@@ -308,7 +308,7 @@ struct mappings_buffer
     matches_per_target_param pcoverage;
     // std::vector<std::vector<uint16_t>> hitcounts;
 
-    #ifdef MC_BAM
+    #ifdef RC_BAM
     bam_buffer bam_buf;
     mappings_buffer(size_t n) : bam_buf(n) {}
     #endif
@@ -724,6 +724,7 @@ void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const seq
     os << '\n';
 }
 
+#ifdef RC_BAM
 void add_bam_minimal(bam_buffer& bam_buf, const alignment_targets& refs, const sequence_query& query, const taxon* tax, bool primary) {
 
     // function only applicable for mapped reads atm
@@ -757,6 +758,7 @@ void add_bam_minimal(bam_buffer& bam_buf, const alignment_targets& refs, const s
     bam_buf.add_bam(qname.size(), qname.data(), flag2, refs.id(tax), 0, 255, n_cigar, cigar,
              refs.id(tax), 0, l_template, l_read, recv2.data(), nullptr, 0);
 }
+#endif
 
 /*************************************************************************//**
  *
@@ -816,7 +818,7 @@ void show_sam(std::ostream& os,
 }
 
 
-#ifdef MC_BAM
+#ifdef RC_BAM
 void add_bam_alignments(bam_buffer& bam_buf,
                         const query_options& opt,
                         const sequence_query& query,
@@ -892,7 +894,7 @@ void map_queries_to_targets_2pass(
     // show sam header
     alignment_targets refs;
     
-    #ifdef MC_BAM
+    #ifdef RC_BAM
     samFile   *bam_file   = nullptr;
     sam_hdr_t *bam_header = nullptr;
 
@@ -903,7 +905,7 @@ void map_queries_to_targets_2pass(
         refs.show_sam_header(results.alignmentOut);
     }
     
-    #ifdef MC_BAM
+    #ifdef RC_BAM
     else if (opt.rnaMode == rna_mode::bam) {
 
         refs.load(db);
@@ -920,8 +922,12 @@ void map_queries_to_targets_2pass(
     #endif
 
     const auto makeBatchBuffer = [&] {
+        #ifdef RC_BAM
         return mappings_buffer(opt.performance.bamBufSize);
-        };
+        #else
+        return mappings_buffer();
+        #endif
+    };
 
     // updates buffer with the database answer of a single query
     const auto processQuery = [&] (mappings_buffer& buf,
@@ -937,7 +943,7 @@ void map_queries_to_targets_2pass(
         
         show_sam(buf.align_out, opt, query, cls.candidates, refs);
         
-        #ifdef MC_BAM
+        #ifdef RC_BAM
         add_bam_alignments(buf.bam_buf, opt, query, cls.candidates, refs);
         #endif
 
@@ -948,7 +954,7 @@ void map_queries_to_targets_2pass(
         results.perReadOut << buf.out.str();
         results.alignmentOut << buf.align_out.str();
 
-        #ifdef MC_BAM
+        #ifdef RC_BAM
         if (opt.rnaMode == rna_mode::bam) {
             // if (buf.bam_buf.full)
                 // std::cerr << "BAM buf status = " << (buf.bam_buf.full?"full":"free") << std::endl;
@@ -970,14 +976,14 @@ void map_queries_to_targets_2pass(
                    makeBatchBuffer, processQuery, finalizeBatch,
                    appendToOutput);
 
-    #ifdef MC_BAM
+    #ifdef RC_BAM
     if (bam_header) sam_hdr_destroy(bam_header);
     if (bam_file) sam_close(bam_file);
     #endif
 }
 
 
-#ifndef MC_BAM
+#ifndef RC_BAM
 // parameter search !
 //
 // they don't call it high *readability* computing
@@ -1205,7 +1211,7 @@ void map_queries_to_targets(const vector<string>& infiles,
     std::cerr << opt.classify.hitsMin << " " << opt.classify.hitsCutoff << " " << opt.classify.covMin << " [" << (opt.classify.covNorm==coverage_norm::max?"NORM":"NO NORM") << "]" << std::endl;
     
     if(opt.rnaMode == rna_mode::search) {
-        #ifndef MC_BAM
+        #ifndef RC_BAM
         map_queries_to_targets_rna_search_2pass(infiles, db, opt);
         #endif
     } else {

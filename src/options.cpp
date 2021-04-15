@@ -1033,10 +1033,12 @@ performance_options_cli(performance_tuning_options& opt, error_messages& err)
         %("Sets the maximum number of parallel threads to use."
           "default (on this machine): "s + to_string(opt.numThreads))
     ,
+    #ifdef RC_BAM
     (   option("-bam-threads") &
         integer("#", opt.bamThreads)
             .if_missing([&]{ err += "Number missing after '-bam-threads'!"; })
     ),
+    #endif
     (   option("-batch-size", "-batchsize") &
         integer("#", opt.batchSize)
             .if_missing([&]{ err += "Number missing after '-batch-size'!"; })
@@ -1044,11 +1046,13 @@ performance_options_cli(performance_tuning_options& opt, error_messages& err)
         %("Process <#> many queries (reads or read pairs) per thread at once.\n"
           "default (on this machine): "s + to_string(opt.batchSize))
     ,
+    #ifdef RC_BAM
     (   option("-bam-buffer") &
         integer("#", opt.bamBufSize)
             .if_missing([&]{ err += "Number missing after '-bam-buffer'!"; })
     )
     ,
+    #endif
     (   option("-query-limit", "-querylimit") &
         integer("#", opt.queryLimit)
             .if_missing([&]{ err += "Number missing after '-query-limit'!"; })
@@ -1226,7 +1230,7 @@ get_query_options(const cmdline_args& args, query_options opt)
     if(perf.batchSize  < 1) perf.batchSize  = 1;
     if(perf.queryLimit < 0) perf.queryLimit = 0;
 
-    #ifdef MC_BAM
+    #ifdef RC_BAM
     if (opt.rnaMode==rna_mode::bam)
         perf.bamBufSize = 1 << perf.bamBufSize;
     else

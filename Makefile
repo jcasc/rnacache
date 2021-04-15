@@ -9,13 +9,19 @@ WARNINGS     = -Wall -Wextra -Wpedantic
 OPTIMIZATION = -O3
 #-march native -fomit-frame-pointer 
 
-DEP_CXXFLAGS = -DMC_BAM -Idep/bamtools/include/bamtools -Idep/htslib/include/htslib
+ifeq ($(RC_BAM), TRUE)
+    DEP_CXXFLAGS = -Idep/htslib/include/htslib -DRC_BAM
+endif
+
 REL_CXXFLAGS = $(INCLUDES) $(MACROS) $(DIALECT) $(OPTIMIZATION) $(WARNINGS) $(DEP_CXXFLAGS)
 DBG_CXXFLAGS = $(INCLUDES) $(MACROS) $(DIALECT) -O0 -g $(WARNINGS) $(DEP_CXXFLAGS)
 PRF_CXXFLAGS = $(INCLUDES) $(MACROS) $(DIALECT) $(OPTIMIZATION) -g $(WARNINGS) $(DEP_CXXFLAGS)
 
-STATIC_LIBS  = dep/htslib/lib/libhts.a 
-DEP_LDFLAGS  = -Ldep/bamtools/lib -lbamtools -lz -lm -lbz2 -llzma 
+ifeq ($(RC_BAM), TRUE)
+    STATIC_LIBS  = dep/htslib/lib/libhts.a 
+    DEP_LDFLAGS  = -lz -llzma -lbz2
+endif
+
 REL_LDFLAGS  = -pthread -s $(DEP_LDFLAGS)
 DBG_LDFLAGS  = -pthread $(DEP_LDFLAGS)
 PRF_LDFLAGS  = -pthread $(DEP_LDFLAGS)
