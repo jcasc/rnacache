@@ -271,35 +271,6 @@ info_level_cli(info_level& lvl, error_messages& err)
 
 
 //-------------------------------------------------------------------
-/// @brief shared command-line options for taxonomy
-clipp::group
-taxonomy_cli(taxonomy_options& opt, error_messages& err)
-{
-    using namespace clipp;
-
-    return (
-    (   option("-taxonomy") &
-        value("path", opt.path)
-            .if_missing([&]{ err += "Taxonomy path is missing after '-taxonomy'!"; })
-    )
-        // % "directory with taxonomic hierarchy data (see NCBI's taxonomic data files)\n"
-        % "Unavailable in RNACache.\n"
-    ,
-    (   option("-taxpostmap") &
-        values("file", opt.mappingPostFiles)
-            .if_missing([&]{ err += "Taxonomy mapping files are missing after '-taxpostmap'!"; })
-    )
-        // % "Files with sequence to taxon id mappings that are used "
-        //   "as alternative source in a post processing step.\n"
-        //   "default: 'nucl_(gb|wgs|est|gss).accession2taxid'"
-        % "Unavailable in RNACache.\n"
-    );
-
-}
-
-
-
-//-------------------------------------------------------------------
 /// @brief shared command-line options for sequence sketching
 clipp::group
 sketching_options_cli(sketching_options& opt, error_messages& err)
@@ -411,44 +382,6 @@ database_storage_options_cli(database_storage_options& opt, error_messages& err)
 
 
 
-//-------------------------------------------------------------------
-void augment_taxonomy_options(taxonomy_options& opt)
-{
-    if(!opt.path.empty() && opt.path.back() != '/') opt.path += '/';
-
-    opt.nodesFile = opt.path + "nodes.dmp";
-    opt.namesFile = opt.path + "names.dmp";
-    opt.mergeFile = opt.path + "merged.dmp";
-
-    opt.mappingPreFilesLocal.push_back("assembly_summary.txt");
-    opt.mappingPreFilesGlobal.push_back(opt.path + "assembly_summary_refseq.txt");
-    opt.mappingPreFilesGlobal.push_back(opt.path + "assembly_summary_refseq_historical.txt");
-    opt.mappingPreFilesGlobal.push_back(opt.path + "assembly_summary_genbank.txt");
-    opt.mappingPreFilesGlobal.push_back(opt.path + "assembly_summary_genbank_historical.txt");
-
-    //default NCBI accession to taxon map file names
-    opt.mappingPostFiles.push_back(opt.path + "nucl_gb.accession2taxid");
-    opt.mappingPostFiles.push_back(opt.path + "nucl_wgs.accession2taxid");
-    opt.mappingPostFiles.push_back(opt.path + "nucl_est.accession2taxid");
-    opt.mappingPostFiles.push_back(opt.path + "nucl_gss.accession2taxid");
-
-    //find additional maps by file extension ".accession2taxid"
-    for(const auto f : files_in_directory(opt.path)) {
-        if(f.find(".accession2taxid") != string::npos) {
-            if(std::find(opt.mappingPostFiles.begin(),
-                         opt.mappingPostFiles.end(), f)
-               == opt.mappingPostFiles.end())
-            {
-                opt.mappingPostFiles.push_back(f);
-            }
-        }
-    }
-}
-
-
-
-
-
 /*****************************************************************************
  *
  *
@@ -477,7 +410,6 @@ build_mode_cli(build_options& opt, error_messages& err)
     ),
     "BASIC OPTIONS" %
     (
-        taxonomy_cli(opt.taxonomy, err),
         info_level_cli(opt.infoLevel, err)
     ),
     "SKETCHING (SUBSAMPLING)" %
@@ -485,10 +417,6 @@ build_mode_cli(build_options& opt, error_messages& err)
     ,
     "ADVANCED OPTIONS" %
     (
-        option("-reset-taxa", "-reset-parents").set(opt.resetParents)
-            %("Unavailable in RNACache.\n"
-              "default: "s + (opt.resetParents ? "on" : "off"))
-        ,
         database_storage_options_cli(opt.dbconfig, err)
     ),
     catch_unknown(err)
@@ -512,7 +440,6 @@ get_build_options(const cmdline_args& args, build_options opt)
         raise_default_error(err, "build", build_mode_usage());
     }
 
-    augment_taxonomy_options(opt.taxonomy);
     replace_directories_with_contained_files(opt.infiles);
 
     if(opt.dbconfig.maxLocationsPerFeature < 0)
@@ -609,16 +536,10 @@ modify_mode_cli(build_options& opt, error_messages& err)
     ),
     "BASIC OPTIONS" %
     (
-        taxonomy_cli(opt.taxonomy, err),
         info_level_cli(opt.infoLevel, err)
     ),
     "ADVANCED OPTIONS" %
     (
-        option("-reset-taxa", "-reset-parents")
-            .set(opt.resetParents)
-            %("Unavailable in RNACache.\n"
-              "default: "s + (opt.resetParents ? "on" : "off"))
-        ,
         database_storage_options_cli(opt.dbconfig, err)
     ),
     catch_unknown(err)
@@ -658,7 +579,6 @@ get_modify_options(const cmdline_args& args, modify_options opt)
     // parse again
     clipp::parse(args, cli);
 
-    augment_taxonomy_options(opt.taxonomy);
     replace_directories_with_contained_files(opt.infiles);
 
     if(opt.dbconfig.maxLocationsPerFeature < 0)
@@ -1300,150 +1220,6 @@ string query_mode_docs() {
     return docs;
 }
 
-
-
-
-
-/*************************************************************************//**
- *
- *
- *  M E R G E   M O D E
- *
- *
- *****************************************************************************/
-
-/// @brief merge mode command-line options
-clipp::group
-merge_mode_cli(merge_options& opt, error_messages& err)
-{
-    using namespace clipp;
-
-    auto& qry = opt.query;
-
-    return (
-    "REQUIRED PARAMETERS" %
-    (
-        values(match::prefix_not{"-"}, "result file/directory", opt.infiles)
-            .if_missing([&]{ err += "No result filenames provided!"; })
-            % "MetaCache result files.\n"
-              "If directory names are given, they will be searched for "
-              "sequence files (at most 10 levels deep).\n"
-              "IMPORTANT: Result files must have been produced with:\n"
-              "    -tophits -queryids -lowest species\n"
-              "and must NOT be run with options that suppress or alter the "
-              "default output like, e.g.: -no-map, -no-summary, -separator, etc.\n"
-        ,
-        (   required("-taxonomy")
-                .if_missing([&]{ err += "Taxonomy path missing. Use '-taxonomy <path>'!"; })
-            &
-            value("path", opt.taxonomy.path)
-                .if_missing([&]{ err += "Taxonomy path missing after '-taxonomy'!"; })
-        )
-            % "directory with taxonomic hierarchy data (see NCBI's taxonomic data files)"
-    )
-    ,
-    "CLASSIFICATION" %
-        classification_params_cli(qry.classify, err)
-    ,
-    "GENERAL OUTPUT" % (
-        info_level_cli(opt.infoLevel, err)
-        ,
-        option("-no-summary", "-nosummary").set(qry.output.showSummary,false)
-            %("Dont't show result summary & mapping statistics at the "
-              "end of the mapping output\n"
-              "default: "s + (!qry.output.showSummary ? "on" : "off"))
-        ,
-        option("-no-query-params", "-no-queryparams", "-noqueryparams")
-            .set(qry.output.showQueryParams,false)
-            %("Don't show query settings at the beginning of the "
-              "mapping output\n"
-              "default: "s + (!qry.output.showQueryParams ? "on" : "off"))
-        ,
-        option("-no-err", "-noerr", "-no-errors").set(qry.output.showErrors,false)
-            %("Suppress all error messages.\n"
-              "default: "s + (!qry.output.showErrors ? "on" : "off"))
-    )
-    ,
-    "CLASSIFICATION RESULT FORMATTING" %
-        classification_output_format_cli(qry.output.format, err)
-    ,
-    "ANALYSIS" %
-        classification_analysis_cli(qry.output.analysis, err)
-    ,
-    "ADVANCED: GROUND TRUTH BASED EVALUATION" %
-        classification_evaluation_cli(qry.output.evaluate, err)
-    ,
-    "ADVANCED: CUSTOM QUERY SKETCHING (SUBSAMPLING)" %
-        sketching_options_cli(qry.sketching, err)
-    ,
-    "ADVANCED: DATABASE MODIFICATION" %
-        database_storage_options_cli(qry.dbconfig, err)
-    ,
-    "ADVANCED: PERFORMANCE TUNING / TESTING" %
-        performance_options_cli(qry.performance, err)
-    ,
-    catch_unknown(err)
-    );
-}
-
-
-
-//-------------------------------------------------------------------
-merge_options
-get_merge_options(const cmdline_args& args, merge_options opt)
-{
-    error_messages err;
-
-    auto cli = merge_mode_cli(opt, err);
-
-    auto result = clipp::parse(args, cli);
-
-    if(!result || err.any()) {
-        raise_default_error(err, "merge", merge_mode_usage());
-    }
-
-    replace_directories_with_contained_files(opt.infiles);
-    std::sort(opt.infiles.begin(), opt.infiles.end());
-
-    auto& qo = opt.query;
-    qo = get_query_options(args, {});
-
-    if(qo.classify.hitsMin == 0) {
-        qo.classify.hitsMin = 5;
-    }
-    if(qo.classify.lowestRank < taxon_rank::Species) {
-        qo.classify.lowestRank = taxon_rank::Species;
-    }
-    if(qo.output.format.lowestRank < taxon_rank::Species) {
-        qo.output.format.lowestRank = taxon_rank::Species;
-    }
-    if(qo.performance.numThreads > 1) {
-        qo.performance.numThreads = 1;
-    }
-
-    return opt;
-}
-
-
-
-//-------------------------------------------------------------------
-string merge_mode_usage() {
-    return "Merge mode is not available in RNACache.";
-}
-
-
-
-//-------------------------------------------------------------------
-string merge_mode_examples() {
-    return "Merge mode is not available in RNACache.";
-}
-
-
-
-//-------------------------------------------------------------------
-string merge_mode_docs() {
-    return "Merge mode is not available in RNACache.";
-}
 
 
 

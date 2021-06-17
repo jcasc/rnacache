@@ -172,45 +172,6 @@ all_targets(const database& db)
 
 /*************************************************************************//**
  *
- * @brief try to assign parent taxa to target taxa using mapping files
- *
- *****************************************************************************/
-void try_to_rank_unranked_targets(database& db, const build_options& opt)
-{
-    std::set<const taxon*> unranked;
-    if(opt.resetParents)
-        unranked = all_targets(db);
-    else
-        unranked = unranked_targets(db);
-
-    if(!unranked.empty()) {
-        if(opt.infoLevel != info_level::silent) {
-            cout << unranked.size()
-                 << " targets are unranked." << endl;
-        }
-
-        for(const auto& file : opt.taxonomy.mappingPostFiles) {
-            rank_targets_with_mapping_file(db, unranked, file, opt.infoLevel);
-            if(unranked.empty()) break;
-        }
-    }
-
-    unranked = unranked_targets(db);
-    if(opt.infoLevel != info_level::silent) {
-        if(unranked.empty()) {
-            cout << "All targets are ranked." << endl;
-        }
-        else {
-            cout << unranked.size()
-                 << " targets remain unranked." << endl;
-        }
-    }
-}
-
-
-
-/*************************************************************************//**
- *
  * @brief look up taxon id based on an identifier (accession number etc.)
  *
  *****************************************************************************/
@@ -401,18 +362,6 @@ void prepare_database(database& db, const build_options& opt)
              << dbconf.maxLoadFactor << '\n';
     }
 
-    if(!opt.taxonomy.path.empty()) {
-        db.reset_taxa_above_sequence_level(
-            make_taxonomic_hierarchy(opt.taxonomy.nodesFile,
-                                     opt.taxonomy.namesFile,
-                                     opt.taxonomy.mergeFile,
-                                     opt.infoLevel) );
-
-        if(opt.infoLevel != info_level::silent) {
-            cout << "Taxonomy applied to database." << endl;
-        }
-    }
-
     if(db.non_target_taxon_count() < 1 && opt.infoLevel != info_level::silent) {
         cout << "The datbase doesn't contain a taxonomic hierarchy yet.\n"
              << "You can add one or update later via:\n"
@@ -523,8 +472,6 @@ void add_to_database(database& db, const build_options& opt)
             print_content_properties(db);
         }
     }
-
-    try_to_rank_unranked_targets(db, opt);
 
     post_process_features(db, opt);
 

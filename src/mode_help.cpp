@@ -92,9 +92,6 @@ void main_mode_help(const cmdline_args& args)
     else if(args[2] == "query") {
         std::cout << query_mode_docs() << '\n';
     }
-    else if(args[2] == "merge") {
-        std::cout << merge_mode_docs() << '\n';
-    }
     else if(args[2] == "info") {
         std::cout << info_mode_docs() << '\n';
     }

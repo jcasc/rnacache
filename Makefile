@@ -113,7 +113,6 @@ SOURCES = \
           src/mode_build.cpp \
           src/mode_help.cpp \
           src/mode_info.cpp \
-          src/mode_merge.cpp \
           src/mode_query.cpp \
           src/options.cpp \
           src/printing.cpp \
@@ -159,9 +158,6 @@ $(2)/mode_help.o : src/mode_help.cpp src/modes.h src/filesys_utility.h
 	$(COMPILER) $(3) -c $$< -o $$@
 	
 $(2)/mode_info.o : src/mode_info.cpp $(HEADERS) 
-	$(COMPILER) $(3) -c $$< -o $$@
-
-$(2)/mode_merge.o : src/mode_merge.cpp $(HEADERS) 
 	$(COMPILER) $(3) -c $$< -o $$@
 	
 $(2)/mode_query.o : src/mode_query.cpp $(HEADERS) 

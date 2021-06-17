@@ -56,13 +56,11 @@ namespace mc {
  *****************************************************************************/
 struct taxonomy_options
 {
-    std::string path;
     std::string nodesFile;
     std::string namesFile;
     std::string mergeFile;
     std::vector<std::string> mappingPreFilesLocal;
     std::vector<std::string> mappingPreFilesGlobal;
-    std::vector<std::string> mappingPostFiles;
 };
 
 
@@ -131,7 +129,6 @@ struct build_options
     database_storage_options dbconfig;
 
     taxonomy_options taxonomy;
-    bool resetParents = false;
 
     info_level infoLevel = info_level::moderate;
 };
@@ -470,50 +467,6 @@ std::string query_mode_usage();
 std::string query_mode_examples();
 std::string query_mode_docs();
 
-
-
-
-
-/*************************************************************************//**
- *
- *
- *  M E R G E   M O D E
- *
- *
- *****************************************************************************/
-
-/*************************************************************************//**
- *
- * @brief merge parameters
- *
- *****************************************************************************/
-struct merge_options
-{
-    std::string dbfile;
-    std::vector<std::string> infiles;
-
-    taxonomy_options taxonomy;
-
-	query_options query;
-    info_level infoLevel = info_level::moderate;
-};
-
-
-
-/*************************************************************************//**
- * @brief command line args -> merge mode options
- *****************************************************************************/
-merge_options get_merge_options(const cmdline_args&, merge_options
-                                defaults = merge_options{});
-
-
-
-/*************************************************************************//**
- * @brief query mode documentation
- *****************************************************************************/
-std::string merge_mode_usage();
-std::string merge_mode_examples();
-std::string merge_mode_docs();
 
 
 

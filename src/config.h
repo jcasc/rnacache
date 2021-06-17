@@ -110,6 +110,7 @@ using feature_hash = same_size_hash<typename sketcher::feature_type>;
  */
 
 class distinct_matches_in_contiguous_window_ranges;
+class best_distinct_matches_in_contiguous_window_ranges;
 
 using classification_candidates = distinct_matches_in_contiguous_window_ranges;
 
