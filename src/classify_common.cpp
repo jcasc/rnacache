@@ -89,7 +89,6 @@ make_classification_candidates(const database& db,
         std::max(query.seq1.size() + query.seq2.size(), opt.insertSizeMax) /
         db.target_sketcher().window_stride() ));
 
-    rules.mergeBelow    = opt.lowestRank;
     rules.maxCandidates = opt.maxNumCandidatesPerQuery;
 
     return classification_candidates{db, allhits, rules};
@@ -184,13 +183,13 @@ void show_query_mapping(
     }
 
     if(opt.analysis.showAllHits) {
-        show_matches(os, db, allhits, fmt.lowestRank);
+        show_matches(os, db, allhits);
         os << colsep;
     }
     
     if(opt.analysis.showTopHits)
     {
-        show_candidates(os, db, cls.candidates, fmt.lowestRank);
+        show_candidates(os, cls.candidates);
         os << colsep;
     }
     if(opt.analysis.showLocations) {

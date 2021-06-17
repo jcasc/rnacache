@@ -47,34 +47,21 @@ void show_query_parameters(std::ostream& os, const query_options& opt)
     if(fmt.mapViewMode != map_view_mode::none) {
         os << comment << "Reporting per-read mappings (non-mapping lines start with '"
            << comment << "').\n";
-
-        if(fmt.showLineage) {
-            os << comment
-               << "The complete lineage will be reported "
-               << "starting with the lowest match.\n";
-        }
-        else {
-            os << comment
-               << "Only the lowest matching rank will be reported.\n";
-        }
     }
     else {
         os << comment << "Per-Read mappings will not be shown.\n";
     }
 
     os << comment
-       << "Classification will be constrained to ranks from '"
-       << taxonomy::rank_name(opt.classify.lowestRank) << "' to '"
-       << taxonomy::rank_name(opt.classify.highestRank) << "'.\n";
-
-    os << comment
        << "Classification hit threshold is "
        << opt.classify.hitsMin << " per query\n";
 
-    os << comment
-       << "At maximum "
-       << opt.classify.maxNumCandidatesPerQuery
-       << " classification candidates will be considered per query.\n";
+    if (std::is_same<classification_candidates, best_distinct_matches_in_contiguous_window_ranges>()) {
+        os << comment
+           << "At maximum "
+           << opt.classify.maxNumCandidatesPerQuery
+           << " classification candidates will be considered per query.\n";
+    }
 
     if(opt.pairing == pairing_mode::files) {
         os << comment << "File based paired-end mode:\n"
@@ -117,44 +104,21 @@ void show_taxon_header(std::ostream& os,
                        const classification_output_formatting& opt,
                        const std::string& prefix)
 {
-    const auto rmax = opt.showLineage ? opt.highestRank : opt.lowestRank;
     const auto& style = opt.taxonStyle;
     const auto& fmt = opt.tokens;
 
-    if(opt.lowestRank == rmax) {
-        if(style.showRankName) {
-            os << prefix << "rank" << fmt.rankSuffix;
-        }
+    if(style.showRankName) {
+        os << prefix << "rank" << fmt.rankSuffix;
+    }
 
-        if(style.showName) {
-            os << prefix << "taxname";
-            if(style.showId) {
-                os << fmt.taxidPrefix << prefix << "taxid" << fmt.taxidSuffix;
-            }
-        }
-        else if(style.showId) {
-            os << prefix << "taxid";
+    if(style.showName) {
+        os << prefix << "taxname";
+        if(style.showId) {
+            os << fmt.taxidPrefix << prefix << "taxid" << fmt.taxidSuffix;
         }
     }
-    else {
-        for(auto r = opt.lowestRank; r <= rmax; ++r) {
-
-            if(style.showRankName) {
-                os << prefix << taxonomy::rank_name(r) << fmt.rankSuffix;
-            }
-
-            if(style.showName) {
-                os << prefix << "taxname";
-                if(style.showId) {
-                    os << fmt.taxidPrefix << prefix << "taxid" << fmt.taxidSuffix;
-                }
-            }
-            else if(style.showId) {
-                os << prefix << "taxid";
-            }
-
-            if(r < rmax) os << opt.tokens.taxSeparator;
-        }
+    else if(style.showId) {
+        os << prefix << "taxid";
     }
 }
 
@@ -235,8 +199,8 @@ void show_taxon(std::ostream& os,
                 const classification_output_formatting& opt,
                 const taxon* tax)
 {
-    if(!tax || tax->rank() > opt.highestRank) {
-        if(opt.collapseUnclassifiedLineages) {
+    if(!tax) {
+        if(opt.collapseUnclassifiedLineages) { // TODO
             if(opt.taxonStyle.showId
                && !opt.taxonStyle.showName
                && !opt.taxonStyle.showRankName)
@@ -248,15 +212,11 @@ void show_taxon(std::ostream& os,
             }
         }
         else {
-            const auto rmax = opt.showLineage ? opt.highestRank : opt.lowestRank;
-            show_blank_lineage(os, opt.taxonStyle, opt.lowestRank, rmax, opt.tokens);
+            show_blank_lineage(os, opt.taxonStyle, taxon_rank::Sequence, taxon_rank::Sequence, opt.tokens);
         }
     }
     else {
-        const auto rmin = opt.lowestRank < tax->rank() ? tax->rank() : opt.lowestRank;
-        const auto rmax = opt.showLineage ? opt.highestRank : rmin;
-
-        show_lineage(os, db.ranks(tax), opt.taxonStyle, rmin, rmax, opt.tokens);
+        show_lineage(os, db.ranks(tax), opt.taxonStyle, taxon_rank::Sequence, taxon_rank::Sequence, opt.tokens);
     }
 }
 
@@ -264,32 +224,15 @@ void show_taxon(std::ostream& os,
 
 //-------------------------------------------------------------------
 void show_candidates(std::ostream& os,
-                     const database& db,
-                     const classification_candidates& cand,
-                     taxon_rank lowest)
+                     const classification_candidates& cand)
 {
     using size_t = classification_candidates::size_type;
 
-    if(lowest == taxon_rank::Sequence) {
-        for(size_t i = 0; i < cand.size() && cand[i].hits > 0; ++i) {
-            if(i > 0) os << ',';
-            if(cand[i].tax) os << cand[i].tax->name() << ':' << cand[i].hits;
-        }
+    for(size_t i = 0; i < cand.size() && cand[i].hits > 0; ++i) {
+        if(i > 0) os << ',';
+        if(cand[i].tax) os << cand[i].tax->name() << ':' << cand[i].hits;
     }
-    else {
-        for(size_t i = 0; i < cand.size() && cand[i].hits > 0; ++i) {
-            if(i > 0) os << ',';
-            const taxon* tax = (cand[i].tax->rank() < lowest) ?
-                               db.ancestor(cand[i].tax,lowest) :
-                               cand[i].tax;
-            if(tax) {
-                os << tax->id();
-            } else {
-                os << cand[i].tax->name();
-            }
-            os << ':' << cand[i].hits;
-        }
-    }
+
 }
 
 
@@ -298,61 +241,34 @@ void show_candidates(std::ostream& os,
 template<class Locations>
 void show_matches(std::ostream& os,
                   const database& db,
-                  const Locations& matches,
-                  taxon_rank lowest)
+                  const Locations& matches)
 {
     if(matches.empty()) return;
 
-    if(lowest == taxon_rank::Sequence) {
-        auto cur = matches.begin();
-        int count = 1;
-        for(auto it = matches.begin()+1; it != matches.end(); ++it) {
-            if(*cur == *it)
-                ++count;
-            else {
-                const taxon* tax = db.taxon_of_target(cur->tgt);
-                if(tax) os << tax->name()
-                           << '/' << int(cur->win)
-                           << ':' << count << ',';
-                cur = it;
-                count = 1;
-            }
+    auto cur = matches.begin();
+    int count = 1;
+    for(auto it = matches.begin()+1; it != matches.end(); ++it) {
+        if(*cur == *it)
+            ++count;
+        else {
+            const taxon* tax = db.taxon_of_target(cur->tgt);
+            if(tax) os << tax->name()
+                        << '/' << int(cur->win)
+                        << ':' << count << ',';
+            cur = it;
+            count = 1;
         }
-        const taxon* tax = db.taxon_of_target(cur->tgt);
-        if(tax) os << tax->name()
-                   << '/' << int(cur->win)
-                   << ':' << count << ',';
     }
-    else {
-        auto cur = matches.begin();
-        int count = 1;
-        for(auto it = matches.begin()+1; it != matches.end(); ++it) {
-            if(*cur == *it)
-                ++count;
-            else {
-                const taxon* tax = db.ancestor(cur->tgt, lowest);
-                if(!tax) {
-                    tax = db.taxon_of_target(cur->tgt);
-                }
-                os << tax->name() << ':' << count << ',';
-
-                cur = it;
-                count = 1;
-            }
-        }
-        const taxon* tax = db.ancestor(cur->tgt, lowest);
-        if(!tax) {
-            tax = db.taxon_of_target(cur->tgt);
-        }
-        os << tax->name() << ':' << count << ',';
-    }
+    const taxon* tax = db.taxon_of_target(cur->tgt);
+    if(tax) os << tax->name()
+                << '/' << int(cur->win)
+                << ':' << count << ',';
 }
 
 template void show_matches<match_locations>(
     std::ostream& os,
     const database& db,
-    const match_locations& matches,
-    taxon_rank lowest);
+    const match_locations& matches);
 
 
 
@@ -388,11 +304,8 @@ void show_matches_per_targets(std::ostream& os,
        << " windows_in_sequence " << opt.tokens.column
        << "queryid/window_index:hits/window_index:hits/...,queryid/...\n";
 
-    const auto rmin = taxon_rank::Sequence;
-    const auto rmax = opt.showLineage ? opt.highestRank : rmin;
-
     for(const auto& mapping : tgtMatches) {
-        show_lineage(os, db.ranks(mapping.first), opt.taxonStyle, rmin, rmax, opt.tokens);
+        show_lineage(os, db.ranks(mapping.first), opt.taxonStyle, taxon_rank::Sequence, taxon_rank::Sequence, opt.tokens);
         os << opt.tokens.column << db.taxon_of_target(mapping.first)->source().windows
            << opt.tokens.column;
 

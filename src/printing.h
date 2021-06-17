@@ -80,9 +80,7 @@ void show_taxon_header(std::ostream&,
  *
  *****************************************************************************/
 void show_candidates(std::ostream&,
-                     const database&,
-                     const classification_candidates&,
-                     taxon_rank lowest = taxon_rank::Sequence);
+                     const classification_candidates&);
 
 
 /*************************************************************************//**
@@ -93,8 +91,7 @@ void show_candidates(std::ostream&,
 template<class Locations>
 void show_matches(std::ostream&,
                   const database&,
-                  const Locations&,
-                  taxon_rank lowest = taxon_rank::Sequence);
+                  const Locations&);
 
 
 /*************************************************************************//**

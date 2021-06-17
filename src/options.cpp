@@ -651,24 +651,6 @@ classification_params_cli(classification_options& opt, error_messages& err)
     using namespace clipp;
 
     return (
-    (   option("-lowest") &
-        value("rank", [&](const string& name) {
-                auto r = rank_from_name(name, err);
-                if(opt.lowestRank < taxon_rank::root) opt.lowestRank = r;
-            })
-            .if_missing([&]{ err += "Taxonomic rank missing after '-lowest'!"; })
-    )
-        %("Unavailable in RNACache.")
-    ,
-    (   option("-highest") &
-        value("rank", [&](const string& name) {
-                auto r = rank_from_name(name, err);
-                if(opt.highestRank <= taxon_rank::root) opt.highestRank = r;
-            })
-            .if_missing([&]{ err += "Taxonomic rank missing after '-highest'!"; })
-    )
-        %("Unavailable in RNACache.")
-    ,
     (   option("-hitmin", "-hit-min", "-hits-min", "-hitsmin") &
         integer("t", opt.hitsMin)
             .if_missing([&]{ err += "Number missing after '-hitmin'!"; })
@@ -679,24 +661,12 @@ classification_params_cli(classification_options& opt, error_messages& err)
           "precision at the expense of sensitivity.\n"
           "default: "s + to_string(opt.hitsMin))
     ,
-    (   option("-hitdiff", "-hit-diff", "-hitsdiff", "-hits-diff") &
-        number("t", opt.hitsDiffFraction)
-            .if_missing([&]{ err += "Number missing after '-hitdiff'!"; })
-    )
-        %("Unavailable in RNACache.")
-    ,
     (   option("-maxcand", "-max-cand") &
         integer("#", opt.maxNumCandidatesPerQuery)
             .if_missing([&]{ err += "Number missing after '-maxcand'!"; })
     )
-        %("Unavailable in RNACache.")
-    ,
-    (   option("-cov-percentile") &
-        number("p", opt.covPercentile)
-            .if_missing([&]{ err += "Number missing after '-cov-percentile'!"; })
-    )
-        %("Unavailable in RNACache.")
-    ,   
+        %("(Requires changes in config.h)")
+    , 
         option("-hit-cutoff", "-cutoff", "-hits-cutoff", "-hitcutoff", "-hitscutoff") &
         number("t", opt.hitsCutoff)
             .if_missing([&]{ err += "Number missing after '-hit-cutoff'!"; })
@@ -779,9 +749,6 @@ classification_output_format_cli(classification_output_formatting& opt,
               "read sequences. This option will always be activated if "
               "option '-hits-per-seq' is given.\n"
               "default: "s + (opt.showQueryIds ? "on" : "off"))
-        ,
-        option("-lineage", "-lineages").set(opt.showLineage)
-            %("Useless in RNACache.")
     );
 }
 
@@ -1082,19 +1049,12 @@ get_query_options(const cmdline_args& args, query_options opt)
 
     // interprets numbers > 1 as percentage
     auto& cl = opt.classify;
-    if(cl.hitsDiffFraction > 1) cl.hitsDiffFraction *= 0.01;
-    if(cl.covPercentile    > 1) cl.covPercentile    *= 0.01;
     if(cl.covMin > 1) cl.covMin *= 0.01;
     if(cl.hitsCutoff > 1) cl.hitsCutoff *= 0.01;
 
     if(cl.maxNumCandidatesPerQuery < 1) {
         cl.maxNumCandidatesPerQuery = std::numeric_limits<size_t>::max();
     }
-
-
-    // classification rank consistency checks
-    if(cl.lowestRank  > cl.highestRank) cl.lowestRank  = cl.highestRank;
-    if(cl.highestRank < cl.lowestRank)  cl.highestRank = cl.lowestRank;
 
 
     // processing option checks
@@ -1120,9 +1080,6 @@ get_query_options(const cmdline_args& args, query_options opt)
 
     //always show query ids if hits per target list requested
     auto& fmt = opt.output.format;
-    // output ranks are the same as classification ranks
-    fmt.lowestRank = cl.lowestRank;
-    fmt.highestRank = cl.highestRank;
 
     if(ana.showHitsPerTargetList) fmt.showQueryIds = true;
 

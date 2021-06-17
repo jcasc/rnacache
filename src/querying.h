@@ -33,7 +33,7 @@
 #include "batch_processing.h"
 
 //added this header because otherwise template bug appeared
-//WARNING!!! doesn't work because circulat dependency???
+//WARNING!!! doesn't work because circular dependency???
 // #include "classify_common.h"
 
 

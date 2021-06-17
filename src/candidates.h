@@ -102,9 +102,6 @@ struct candidate_generation_rules
 
     //maximum number of candidates to be generated
     std::size_t maxCandidates = std::numeric_limits<std::size_t>::max();
-
-    //list only the best candidate of a taxon on rank
-    taxon_rank mergeBelow = taxon_rank::Sequence;
 };
 
 
@@ -247,10 +244,7 @@ public:
                 const database& db,
                 const candidate_generation_rules& rules = candidate_generation_rules{})
     {
-        if(rules.mergeBelow > taxon_rank::Sequence)
-            cand.tax = db.lowest_ranked_ancestor(cand.tgt, rules.mergeBelow);
-        else
-            cand.tax = db.taxon_of_target(cand.tgt);
+        cand.tax = db.taxon_of_target(cand.tgt);
 
         if(!cand.tax) return true;
 

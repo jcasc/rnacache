@@ -258,17 +258,11 @@ enum class coverage_fill {
 
 struct classification_options
 {
-    //ranks/taxa to classify on
-    taxon_rank lowestRank  = taxon_rank::Sequence;
-    taxon_rank highestRank = taxon_rank::Domain;
 
-    float hitsDiffFraction = 1.0f;
     //maximum range in sequence that read (pair) is expected to be in
     std::size_t insertSizeMax = 0;
 
     std::size_t maxNumCandidatesPerQuery = 2;
-
-    float covPercentile = 0.0f;
 
     std::uint16_t hitsMin = 4;
     double hitsCutoff = 0.8;
@@ -336,17 +330,12 @@ struct classification_output_formatting
     map_view_mode mapViewMode = map_view_mode::all;
 
     bool showQueryIds = false;
-    //show all ranks that a sequence could be classified on
-    bool showLineage = false;
+    
     //don't print full lineage for unclassified queries
     bool collapseUnclassifiedLineages = true;
     
     //print all classification info in separate columns
     bool useSeparateCols = false;
-
-    //ranks/taxa to show
-    taxon_rank lowestRank  = taxon_rank::Sequence;
-    taxon_rank highestRank = taxon_rank::Domain;
 
     taxon_print_style taxonStyle;
 
