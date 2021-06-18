@@ -334,7 +334,8 @@ database_storage_options_cli(database_storage_options& opt, error_messages& err)
           "If the value is too high it will significantly impact querying speed. "
           "Note that an upper hard limit is always imposed by the data type "
           "used for the hash table bucket size (set with "
-          "compilation macro '-DMC_LOCATION_LIST_SIZE_TYPE').\n"
+          "compilation macro '-DMC_LOCATION_LIST_SIZE_TYPE')."
+          "Can also be set in query mode.\n"
           "default: "s + to_string(defaultDb.max_locations_per_feature()))
     ,
     (
@@ -342,30 +343,18 @@ database_storage_options_cli(database_storage_options& opt, error_messages& err)
             .set(opt.removeOverpopulatedFeatures)
         %("Removes all features that have reached the maximum allowed "
           "amount of locations per feature. This can improve querying "
-          "speed and can be used to remove non-discriminative features.\n"
+          "speed and can be used to remove non-discriminative features."
+          "Can also be set in query mode.\n"
           "default: "s + (opt.removeOverpopulatedFeatures ? "on" : "off"))
     )
     ,
-    (   option("-remove-ambig-features") &
-        value("rank", [&](const string& name) {
-                opt.removeAmbigFeaturesOnRank = rank_from_name(name, err);
-            })
-            .if_missing([&]{ err += "Taxonomic rank missing after '-remove-ambig-features'!"; })
-    )
-        %("Removes all features that have more distinct reference sequence "
-          "on the given taxonomic rank than set by '-max-ambig-per-feature'. "
-          "This can decrease the database size significantly at the expense "
-          "of sensitivity. Note that the lower the given taxonomic rank is, "
-          "the more pronounced the effect will be.\n"
-          "Valid values: "s + taxon_rank_names() + "\n"s +
-          "default: "s + (opt.removeAmbigFeaturesOnRank != taxon_rank::none ? "on" : "off"))
-    ,
-    (   option("-max-ambig-per-feature") &
+    (   option("-max-ambig-per-feature").set(opt.removeAmbigFeaturesOnRank, taxon_rank::Sequence) &
         integer("#", opt.maxTaxaPerFeature)
             .if_missing([&]{ err += "Number missing after '-max-ambig-per-feature'!"; })
     )
-        % "Maximum number of allowed different reference sequence taxa per feature "
-          "if option '-remove-ambig-features' is used.\n"
+        % ("Maximum number of allowed different reference sequences per feature. "
+           "Removes all features exceeding this limit from database.\n"
+           "default: "s + (opt.removeAmbigFeaturesOnRank != taxon_rank::none ? to_string(opt.maxTaxaPerFeature) : "off"))
     ,
     (   option("-max-load-fac", "-max-load-factor") &
         number("factor", opt.maxLoadFactor)
@@ -465,8 +454,8 @@ string build_mode_usage() {
 //-------------------------------------------------------------------
 string build_mode_examples() {
     return
-    "    Build database 'mydb' from sequence file 'transcfipts.fa':\n"
-    "        rnacache build mydb genomes.fa\n"
+    "    Build database 'mydb' from sequence file 'transcripts.fa':\n"
+    "        rnacache build mydb transcripts.fa\n"
     "\n"
     "    Build database 'mydb' from two sequence files:\n"
     "        rnacache build mydb one.fa two.fa\n"
@@ -655,22 +644,31 @@ classification_params_cli(classification_options& opt, error_messages& err)
         integer("t", opt.hitsMin)
             .if_missing([&]{ err += "Number missing after '-hitmin'!"; })
     )
-        %("Sets classification threshhold to <t>.\n"
-          "A read will not be classified if less than t features "
-          "from the database match. Higher values will increase "
-          "precision at the expense of sensitivity.\n"
+        %("Sets classification threshhold 't^min' to <t>.\n"
+          "All candidates with fewer hits are discarded "
+          "from the query's candidate set. Higher values will increase "
+          "precision at the expense of recall.\n"
           "default: "s + to_string(opt.hitsMin))
     ,
     (   option("-maxcand", "-max-cand") &
         integer("#", opt.maxNumCandidatesPerQuery)
             .if_missing([&]{ err += "Number missing after '-maxcand'!"; })
     )
-        %("(Requires changes in config.h)")
-    , 
+        %(std::is_same<classification_candidates, distinct_matches_in_contiguous_window_ranges>() ?
+            "Has no effect. (Requires selection of best_distinct_matches_... candidate generator in config.h)." :
+            "Maximum number of candidates to consider (before filtering!)."
+            "default: "s + to_string(opt.maxNumCandidatesPerQuery))
+    ,
+    ( 
         option("-hit-cutoff", "-cutoff", "-hits-cutoff", "-hitcutoff", "-hitscutoff") &
         number("t", opt.hitsCutoff)
             .if_missing([&]{ err += "Number missing after '-hit-cutoff'!"; })
-
+    )
+        %("Sets classification threshhold 't^cutoff' to <t>.\n"
+          "All candidates with fewer hits (relative to the maximal candidate) "
+          "are discarded from the query's candidate set. Higher values will increase "
+          "precision at the expense of recall.\n"
+          "default: "s + to_string(opt.hitsCutoff))
     ,   
         option("-cov-min", "-covmin", "-coverage-min", "-coveragemin", "-coverage") &
         number("p", opt.covMin)
@@ -1147,7 +1145,7 @@ string query_mode_docs() {
         "DESCRIPTION\n"
         "\n"
         "    Map sequences (short reads, long reads, ...)\n"
-        "    to their most likely reference sequence of origin.\n"
+        "    to their most likely reference sequences of origin.\n"
         "\n\n";
 
     docs += clipp::documentation(cli, cli_doc_formatting()).str();
@@ -1290,22 +1288,22 @@ string info_mode_docs() {
         "    rnacache info\n"
         "        show basic properties of RNACache executable (data type widths, etc.)\n"
         "\n"
-        "    matacache info <database>\n"
+        "    rnacache info <database>\n"
         "        show basic properties of <database>\n"
         "\n"
-        "    matacache info <database> ref[erence]\n"
+        "    rnacache info <database> ref[erence]\n"
         "       list meta information for all reference sequences in <database>\n"
         "\n"
-        "    matacache info <database> ref[erence] <sequence_id>...\n"
+        "    rnacache info <database> ref[erence] <sequence_id>...\n"
         "       list meta information for specific reference sequences\n"
         "\n"
-        "    matacache info <database> stat[istics]\n"
+        "    rnacache info <database> stat[istics]\n"
         "       print database statistics / hash table properties\n"
         "\n"
-        "    matacache info <database> loc[ations]\n"
+        "    rnacache info <database> loc[ations]\n"
         "       print map (feature -> list of reference locations)\n"
         "\n"
-        "    matacache info <database> featurecounts\n"
+        "    rnacache info <database> featurecounts\n"
         "       print map (feature -> number of reference locations)\n"
 
         "\n\n";

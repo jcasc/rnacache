@@ -379,7 +379,7 @@ void print_static_properties(const database& db)
 
     std::cout
         << "------------------------------------------------\n"
-        << "MetaCache version    " << MC_VERSION_STRING << " (" << MC_VERSION << ")\n"
+        << "RNACache version    " << MC_VERSION_STRING << " (" << MC_VERSION << ")\n"
         << "database version     " << MC_DB_VERSION << '\n'
         << "------------------------------------------------\n"
         << "sequence type        " << type_name<database::sequence>() << '\n'

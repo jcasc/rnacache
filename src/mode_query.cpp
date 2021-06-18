@@ -398,7 +398,7 @@ void main_mode_query(const cmdline_args& args)
             " - All command line options that would modify the database are ignored.\n"
             " - Each line will be processed separately.\n"
             " - Lines starting with '#' will be ignored.\n"
-            " - Enter an empty line or press Ctrl-D to quit MetaCache.\n"
+            " - Enter an empty line or press Ctrl-D to quit RNACache.\n"
             << endl;
 
         run_interactive_query_mode(db, opt);
