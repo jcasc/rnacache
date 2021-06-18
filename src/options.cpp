@@ -834,7 +834,7 @@ classification_evaluation_cli(classification_evaluation_options& opt,
               "Queries need to have either a 'taxid|<number>' entry in "
               "their header or a sequence id that is also present in "
               "the database.\n"
-              "This feature decreases the querying speed!\n"
+              "This feature decreases querying speed!\n"
               "default: "s + (opt.determineGroundTruth ? "on" : "off"))
         ,
         option("-accuracy").set(opt.accuracy).set(opt.determineGroundTruth)
@@ -843,7 +843,7 @@ classification_evaluation_cli(classification_evaluation_options& opt,
               "Queries need to have either a 'taxid|<number>' entry in "
               "their header or a sequence id that is also found in "
               "the database.\n"
-              "This feature might decrease the querying speed!\n"
+              "This feature might decrease querying speed!\n"
               "default: "s + (opt.accuracy ? "on" : "off"))
     );
 }

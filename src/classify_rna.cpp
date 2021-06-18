@@ -234,9 +234,10 @@ void evaluate_classification(
     classification& cls,
     rna_mapping_statistics& statistics)
 {
-    if(opt.accuracy) {
+    if (opt.determineGroundTruth)
         cls.groundTruth = ground_truth_taxon(db, query.header);
-        
+    
+    if (opt.accuracy) {
         if (!cls.groundTruth) {
             if (cls.candidates.empty())
                 return statistics.mapped_noise();
@@ -244,8 +245,10 @@ void evaluate_classification(
             for (const auto& cand: cls.candidates)
                 if (cand.tax == cls.groundTruth)
                     return statistics.mapped_correct(cls.candidates.size());
+        statistics.mapped(cls.candidates.size());
+    } else {
+        statistics.mapped();
     }
-    statistics.mapped(cls.candidates.size());
 }
 
 #ifdef RC_BAM

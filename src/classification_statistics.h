@@ -77,7 +77,7 @@ public:
     }
 
     // count mapping
-    void mapped(size_t numMatches) noexcept {
+    void mapped(size_t numMatches = 0) noexcept {
         ++totalReads_;
         if(numMatches > 0) {
             ++alignedReads_;
