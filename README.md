@@ -77,9 +77,22 @@ You can of course combine these options (don't forget the surrounding quotes):
 In rare cases databases built on one platform might not work with RNACache on other platforms due to bit-endianness and data type width differences. Especially mixing RNACache executables compiled with 32-bit and 64-bit compilers might be probelematic.
 
 
-## Building Databases
-   
-### [Building Custom Databases...](docs/building.md)
+## Building a Reference Transcriptome Database
+
+RNACache's [build mode](docs/mode_build.txt) is used for creating databases.
+
+### Reference Transcriptome Files
+Must be in (uncompressed) FASTA or FASTQ format.
+
+You can either specify all input files separately:
+```
+rnacache build mydatabase transcripts1.fna transcripts2.fnq transcripts3.fa
+```
+
+or put them all in one folder and then use that folder as input source:
+```
+rnacache build mydatabase transcripts_folder
+```
 
 ## Mapping
 Once a database is built you can map reads.
@@ -99,10 +112,6 @@ Once a database is built you can map reads.
   ```
   ./rnacache query refseq my_paired_reads.fa -pairseq -out results.txt
   ```
-
-
-### [Output Interpretation, Analysis & Formatting Options...](docs/output.md)
-
 
 ## Documentation of Command Line Parameters
 
