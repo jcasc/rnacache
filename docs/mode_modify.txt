@@ -23,22 +23,10 @@ REQUIRED PARAMETERS
 
 
 
-BASIC OPTIONS
-
-    -taxonomy <path>  Unavailable in RNACache.
-
-    -taxpostmap <file>
-                      Unavailable in RNACache.
-
-    -silent|-verbose  information level during build:
-                      silent => none / verbose => most detailed
-                      default: neither => only errors/important info
+-silent|-verbose      BASIC OPTIONS
 
 
 ADVANCED OPTIONS
-
-    -reset-taxa       Unavailable in RNACache.
-                      default: off
 
     -max-locations-per-feature <#>
                       maximum number of reference sequence locations to be

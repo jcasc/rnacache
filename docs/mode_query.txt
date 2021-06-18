@@ -64,22 +64,13 @@ PAIRED-END READ HANDLING
 
 CLASSIFICATION
 
-    -lowest <rank>    Unavailable in RNACache.
-
-    -highest <rank>   Unavailable in RNACache.
-
     -hitmin <t>       Sets classification threshhold to <t>.
                       A read will not be classified if less than t features from
                       the database match. Higher values will increase precision
                       at the expense of sensitivity.
                       default: 4
 
-    -hitdiff <t>      Unavailable in RNACache.
-
-    -maxcand <#>      Unavailable in RNACache.
-
-    -cov-percentile <p>
-                      Unavailable in RNACache.
+    -maxcand <#>      (Requires changes in config.h)
 
 
 GENERAL OUTPUT FORMATTING
@@ -130,8 +121,6 @@ CLASSIFICATION RESULT FORMATTING
                       '-hits-per-seq' is given.
                       default: off
 
-    -lineage          Useless in RNACache.
-
 
 ANALYSIS: ABUNDANCES
 
@@ -164,9 +153,6 @@ ANALYSIS: RAW DATABASE HITS
     -locations        Show locations in candidate reference sequences.
                       Activates option '-tophits'.
                       default: off
-
-    -hits-per-ref <file>
-                      Unavailable in RNACache.
 
 
 ANALYSIS: ALIGNMENTS

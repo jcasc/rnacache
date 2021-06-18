@@ -798,13 +798,13 @@ classification_analysis_cli(classification_analysis_options& opt, error_messages
                 %("Show locations in candidate reference sequences.\n"
                   "Activates option '-tophits'.\n"
                   "default: "s + (opt.showLocations ? "on" : "off"))
-            ,
-            (   option("-hits-per-ref", "-hits-per-seq",
-                       "-hits-per-tgt", "-hits-per-target")
-                    .set(opt.showHitsPerTargetList) &
-                opt_value("file", opt.targetMappingsFile)
-            )
-                %("Unavailable in RNACache.")
+            // ,
+            // (   option("-hits-per-ref", "-hits-per-seq",
+            //            "-hits-per-tgt", "-hits-per-target")
+            //         .set(opt.showHitsPerTargetList) &
+            //     opt_value("file", opt.targetMappingsFile)
+            // )
+            //     %("Unavailable in RNACache.")
         )
         ,
         "ANALYSIS: ALIGNMENTS" %
@@ -837,23 +837,14 @@ classification_evaluation_cli(classification_evaluation_options& opt,
               "This feature decreases the querying speed!\n"
               "default: "s + (opt.determineGroundTruth ? "on" : "off"))
         ,
-        option("-precision").set(opt.precision).set(opt.determineGroundTruth)
-            %("Report precision & sensitivity "
-              "by comparing query taxa (ground truth) and mapped taxa.\n"
+        option("-accuracy").set(opt.accuracy).set(opt.determineGroundTruth)
+            %("Report accuracy stats "
+              "by comparing query origins (ground truth) and mappings.\n"
               "Queries need to have either a 'taxid|<number>' entry in "
               "their header or a sequence id that is also found in "
               "the database.\n"
-              "This feature decreases the querying speed!\n"
-              "default: "s + (opt.precision ? "on" : "off"))
-        ,
-        option("-taxon-coverage")
-            .set(opt.taxonCoverage).set(opt.precision)
-            .set(opt.determineGroundTruth)
-            %("Report true/false positives and true/false negatives."
-              "This option turns on '-precision', so ground truth data "
-              "needs to be available.\n"
-              "This feature decreases the querying speed!\n"
-              "default: "s + (opt.taxonCoverage ? "on" : "off"))
+              "This feature might decrease the querying speed!\n"
+              "default: "s + (opt.accuracy ? "on" : "off"))
     );
 }
 

@@ -114,41 +114,6 @@ void show_matches_per_targets(std::ostream&,
                               const matches_per_target&,
                               const classification_output_formatting&);
 
-
-/*************************************************************************//**
- *
- * @brief prints a list of accumulated read counts per taxon
- *
- *****************************************************************************/
-void show_abundances(std::ostream&,
-                     const taxon_count_map&,
-                     const taxon_mapping_statistics&,
-                     const classification_output_formatting&);
-
-
-/*************************************************************************//**
- *
- * @brief prints a list of accumulated read counts per taxon
- * @pre   all taxa are assumed to have the same rank
- *
- *****************************************************************************/
-void show_abundance_estimates(std::ostream&,
-                              taxon_rank,
-                              const taxon_count_map&,
-                              const taxon_mapping_statistics&,
-                              const classification_output_formatting&);
-
-
-/*************************************************************************//**
- *
- * @brief prints per-rank classification statistics
- *
- *****************************************************************************/
-void show_statistics(std::ostream&,
-                     const taxon_mapping_statistics&,
-                     const std::string& prefix = "");
-
-
 /*************************************************************************//**
  *
  * @brief prints RNA mapping statistics

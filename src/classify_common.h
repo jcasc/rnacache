@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2016-2019 André Müller   (muellan@uni-mainz.de)
  *                       & Robin Kobus    (rkobus@uni-mainz.de)
- *                       & Julian 
+ *                       & Julian Cascitt (jcascitt@students.uni-mainz.de)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

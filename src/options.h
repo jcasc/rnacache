@@ -284,9 +284,8 @@ struct classification_evaluation_options
     //show ground thruth if available
     bool showGroundTruth = false;
 
-    //test precision (ground truth must be available)
-    bool precision = false;
-    bool taxonCoverage = false;
+    //test accuracy (ground truth must be available)
+    bool accuracy = false;
 
     //show known taxon (or complete lineage if 'showLineage' on)
     bool determineGroundTruth = false;

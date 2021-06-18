@@ -3,8 +3,8 @@
  * RNACache - Transcriptomic Mapping Tool
  *
  * Copyright (C) 2016-2021 Julian Cascitti (jcascitt@students.uni-mainz.de)
- *                       & André Müller   (muellan@uni-mainz.de)
- *                       & Robin Kobus    (rkobus@uni-mainz.de)
+ *                       & André Müller    (muellan@uni-mainz.de)
+ *                       & Robin Kobus     (rkobus@uni-mainz.de)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -234,7 +234,7 @@ void evaluate_classification(
     classification& cls,
     rna_mapping_statistics& statistics)
 {
-    if(opt.determineGroundTruth) {
+    if(opt.accuracy) {
         cls.groundTruth = ground_truth_taxon(db, query.header);
         
         if (!cls.groundTruth) {
