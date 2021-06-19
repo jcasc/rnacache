@@ -178,7 +178,7 @@ void show_query_mapping(
     os << colsep;
 
     if(opt.evaluate.showGroundTruth) {
-        show_taxon(os, db, opt.format, cls.groundTruth);
+        show_taxon(os, opt.format, cls.groundTruth);
         os << colsep;
     }
 

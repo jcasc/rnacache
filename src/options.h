@@ -306,7 +306,7 @@ struct formatting_tokens {
     std::string none = "--";
     //column separator
     std::string column = "\t|\t";
-    //taxon separator (in lineage output)
+    //taxon separator
     std::string taxSeparator = ",";
     //if both taxid AND taxon name are to be printed,
     //taxids will be enclosed by these:
@@ -326,12 +326,6 @@ struct classification_output_formatting
     map_view_mode mapViewMode = map_view_mode::all;
 
     bool showQueryIds = false;
-    
-    //don't print full lineage for unclassified queries
-    bool collapseUnclassifiedLineages = true;
-    
-    //print all classification info in separate columns
-    bool useSeparateCols = false;
 
     taxon_print_style taxonStyle;
 

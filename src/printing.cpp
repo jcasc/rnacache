@@ -120,69 +120,14 @@ void print_taxon(std::ostream& os,
 
 
 //-------------------------------------------------------------------
-void show_lineage(std::ostream& os,
-                  const ranked_lineage& lineage,
-                  taxon_print_style style, taxon_rank lowest, taxon_rank highest,
-                  const formatting_tokens& fmt)
-{
-    if(lowest == taxon_rank::none) return;
-    if(highest == taxon_rank::none) highest = taxon_rank::root;
-
-    for(auto r = lowest; r <= highest; ++r) {
-        const taxon* tax = lineage[int(r)];
-        if(tax) {
-            print_taxon(os, tax->name(), tax->id(), style, fmt);
-        }
-        else {
-            print_taxon(os, fmt.none, taxonomy::none_id(), style, fmt);
-        }
-        if(r < highest) {
-            os << fmt.taxSeparator;
-        }
-    }
-
-}
-
-
-
-//-------------------------------------------------------------------
-void show_blank_lineage(std::ostream& os,
-                        taxon_print_style style,
-                        taxon_rank lowest, taxon_rank highest,
-                        const formatting_tokens& fmt)
-{
-    for(auto r = lowest; r <= highest; ++r) {
-        print_taxon(os, fmt.none, taxonomy::none_id(), style, fmt);
-        if(r < highest) os << fmt.taxSeparator;
-    }
-}
-
-
-
-//-------------------------------------------------------------------
 void show_taxon(std::ostream& os,
-                const database& db,
                 const classification_output_formatting& opt,
                 const taxon* tax)
 {
-    if(!tax) {
-        if(opt.collapseUnclassifiedLineages) { // TODO
-            if(opt.taxonStyle.showId
-               && !opt.taxonStyle.showName)
-            {
-                os << taxonomy::none_id();
-            }
-            else {
-                os << opt.tokens.none;
-            }
-        }
-        else {
-            show_blank_lineage(os, opt.taxonStyle, taxon_rank::Sequence, taxon_rank::Sequence, opt.tokens);
-        }
-    }
-    else {
-        show_lineage(os, db.ranks(tax), opt.taxonStyle, taxon_rank::Sequence, taxon_rank::Sequence, opt.tokens);
-    }
+    if(!tax) 
+        print_taxon(os, opt.tokens.none, taxonomy::none_id(), opt.taxonStyle, opt.tokens);
+    else 
+        print_taxon(os, tax->name(), tax->id(), opt.taxonStyle, opt.tokens);
 }
 
 
@@ -251,41 +196,6 @@ void show_candidate_ranges(std::ostream& os,
 }
 
 
-
-//-------------------------------------------------------------------
-void show_matches_per_targets(std::ostream& os,
-                              const database& db,
-                              const matches_per_target& tgtMatches,
-                              const classification_output_formatting& opt)
-{
-    os << opt.tokens.comment
-       << "--- list of hits for each reference sequence ---\n"
-       << opt.tokens.comment
-       << "window start position within sequence = window_index * window_stride(="
-       << db.query_sketcher().window_stride() << ")\n";
-
-    os << opt.tokens.comment << "TABLE_LAYOUT: "
-       << " sequence " << opt.tokens.column
-       << " windows_in_sequence " << opt.tokens.column
-       << "queryid/window_index:hits/window_index:hits/...,queryid/...\n";
-
-    for(const auto& mapping : tgtMatches) {
-        show_lineage(os, db.ranks(mapping.first), opt.taxonStyle, taxon_rank::Sequence, taxon_rank::Sequence, opt.tokens);
-        os << opt.tokens.column << db.taxon_of_target(mapping.first)->source().windows
-           << opt.tokens.column;
-
-        bool first = true;
-        for(const auto& candidate : mapping.second) {
-            if(first) first = false; else os << ',';
-            os << candidate.qeryid;
-            // windows with hit count
-            for(const auto& match : candidate.matches) {
-                os << '/' << match.win << ':' << match.hits;
-            }
-        }
-        os << '\n';
-    }
-}
 
 //-------------------------------------------------------------------
 void show_statistics(std::ostream& os,

@@ -54,7 +54,6 @@ void show_query_parameters(std::ostream&, const query_options&);
  *
  *****************************************************************************/
 void show_taxon(std::ostream&,
-                const database&,
                 const classification_output_formatting&,
                 const taxon* classified);
 
@@ -98,16 +97,6 @@ void show_candidate_ranges(std::ostream&,
                            const database&,
                            const classification_candidates&);
 
-
-/*************************************************************************//**
- *
- * @brief prints a list of all match locations for each classification target
- *
- *****************************************************************************/
-void show_matches_per_targets(std::ostream&,
-                              const database&,
-                              const matches_per_target&,
-                              const classification_output_formatting&);
 
 /*************************************************************************//**
  *

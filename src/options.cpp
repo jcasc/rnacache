@@ -716,11 +716,6 @@ classification_output_format_cli(classification_output_formatting& opt,
             %("Print taxon ids instead of taxon names.\n"
               "default: "s + (opt.taxonStyle.showId && !opt.taxonStyle.showName ? "on" : "off"))
         ,
-        option("-separate-cols", "-separatecols").set(opt.useSeparateCols)
-            %("Prints *all* mapping information (rank, taxon name, taxon ids) "
-              "in separate columns (see option '-separator').\n"
-              "default: "s + (opt.useSeparateCols ? "on" : "off"))
-        ,
         (   option("-separator") &
             value("text", [&](const string& arg) {
                     opt.tokens.column = sanitize_special_chars(arg);
@@ -1012,26 +1007,6 @@ get_query_options(const cmdline_args& args, query_options opt)
         perf.bamBufSize = 1;
     #endif
 
-
-    //output file consistency checks
-    auto& ana = opt.output.analysis;
-
-    // output option checks and consistency
-
-    auto& fmt = opt.output.format;
-
-
-    // modify output tokens for separate column printig
-    if(fmt.useSeparateCols) {
-        fmt.collapseUnclassifiedLineages = false;
-        fmt.tokens.taxSeparator = fmt.tokens.column;
-        fmt.tokens.taxidPrefix  = fmt.tokens.column;
-        fmt.tokens.taxidSuffix  = "";
-    }
-
-    if(ana.showAllHits) {
-        fmt.mapViewMode = map_view_mode::all;
-    }
 
     // SAM output must be free of other content
     if (opt.rnaMode==rna_mode::sam && opt.queryMappingsFile.empty()) {
