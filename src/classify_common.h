@@ -86,30 +86,22 @@ struct classification_results
 {
     explicit
     classification_results(std::ostream& readOutputTgt   = std::cout,
-                           std::ostream& targetOutputTgt = std::cout,
-                           std::ostream& taxonOutputTgt  = std::cout,
                            std::ostream& alignmentOutputTgt = std::cout,
                            std::ostream& statusTarget    = std::cerr)
     :
         perReadOut(readOutputTgt),
-        perTargetOut(targetOutputTgt),
-        perTaxonOut(taxonOutputTgt),
         alignmentOut(alignmentOutputTgt),
         status(statusTarget)
     {}
 
     void flush_all_streams() {
         perReadOut.flush();
-        perTargetOut.flush();
-        perTaxonOut.flush();
         alignmentOut.flush();
         status.flush();
     }
 
     std::ostream& perReadOut;
-    std::ostream& perTargetOut; // unused in RNA
-    std::ostream& perTaxonOut;  // unused in RNA
-    std::ostream& alignmentOut; // RNA SAM mode
+    std::ostream& alignmentOut; // BAM / SAM
     std::ostream& status;
     timer time;
 
@@ -213,56 +205,6 @@ make_view_from_window_range(const Sequence& s, const window_range& range,
 
     return make_view(s.begin() + (stride * range.beg), end);
 }
-
-
-
-/*************************************************************************//**
- *
- * @brief performs a semi-global alignment
- *
- *****************************************************************************/
-template<class Subject>
-alignment<default_alignment_scheme::score_type,typename sequence::value_type>
-make_semi_global_alignment(const sequence_query& query,
-                           const Subject& subject)
-{
-    std::size_t score  = 0;
-    std::size_t scorer = 0;
-
-    const auto scheme = default_alignment_scheme{};
-
-    //compute alignment
-    auto align = align_semi_global(query.seq1, subject, scheme);
-    score = align.score;
-    //reverse complement
-    auto query1r = make_reverse_complement(query.seq1);
-    auto alignr = align_semi_global(query1r, subject, scheme);
-    scorer = alignr.score;
-
-    //align paired read as well
-    if(!query.seq2.empty()) {
-        score += align_semi_global_score(query.seq2, subject, scheme);
-        auto query2r = make_reverse_complement(query.seq2);
-        scorer += align_semi_global_score(query2r, subject, scheme);
-    }
-
-    return (score > scorer) ? align : alignr;
-}
-
-
-
-/*************************************************************************//**
- *
- * @brief compute alignment of top hits and optionally show it
- *
- *****************************************************************************/
-void show_alignment(std::ostream&,
-                    const database&,
-                    const classification_output_options&,
-                    const sequence_query&,
-                    const classification_candidates&);
-
-
 
 } // namespace mc
 

@@ -19,22 +19,22 @@ SUB-MODES
     rnacache info
         show basic properties of RNACache executable (data type widths, etc.)
 
-    matacache info <database>
+    rnacache info <database>
         show basic properties of <database>
 
-    matacache info <database> ref[erence]
+    rnacache info <database> ref[erence]
        list meta information for all reference sequences in <database>
 
-    matacache info <database> ref[erence] <sequence_id>...
+    rnacache info <database> ref[erence] <sequence_id>...
        list meta information for specific reference sequences
 
-    matacache info <database> stat[istics]
+    rnacache info <database> stat[istics]
        print database statistics / hash table properties
 
-    matacache info <database> loc[ations]
+    rnacache info <database> loc[ations]
        print map (feature -> list of reference locations)
 
-    matacache info <database> featurecounts
+    rnacache info <database> featurecounts
        print map (feature -> number of reference locations)
 
 

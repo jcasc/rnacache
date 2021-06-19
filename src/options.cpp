@@ -716,10 +716,6 @@ classification_output_format_cli(classification_output_formatting& opt,
             %("Print taxon ids instead of taxon names.\n"
               "default: "s + (opt.taxonStyle.showId && !opt.taxonStyle.showName ? "on" : "off"))
         ,
-        option("-omit-ranks", "-omitranks").set(opt.taxonStyle.showRankName,false)
-            %("Do not print taxon rank names.\n"
-              "default: "s + (!opt.taxonStyle.showRankName ? "on" : "off"))
-        ,
         option("-separate-cols", "-separatecols").set(opt.useSeparateCols)
             %("Prints *all* mapping information (rank, taxon name, taxon ids) "
               "in separate columns (see option '-separator').\n"
@@ -755,37 +751,10 @@ classification_output_format_cli(classification_output_formatting& opt,
 //-------------------------------------------------------------------
 /// @brief build mode command-line options
 clipp::group
-classification_analysis_cli(classification_analysis_options& opt, error_messages& err)
+classification_analysis_cli(classification_analysis_options& opt)
 {
     using namespace clipp;
     return (
-        "ANALYSIS: ABUNDANCES" %
-        (
-            (option("-abundances", "-abundance").set(opt.showTaxAbundances) &
-             opt_value("file", opt.abundanceFile))
-                %("Show absolute and relative abundance of each taxon.\n"
-                  "If a valid filename is given, the list will be written to "
-                  "this file.\n"
-                  "default: "s + (opt.showTaxAbundances ? "on" : "off"))
-            ,
-            (   option("-abundance-per") &
-                value("rank", [&](const string& name) {
-                        auto r = rank_from_name(name, err);
-                        if(r < taxon_rank::root) opt.showAbundanceEstimatesOnRank = r;
-                    })
-                    .if_missing([&]{ err += "Taxonomic rank missing after '-abundance-per'!"; })
-            )
-                %("Show absolute and relative abundances for each "
-                  "taxon on one specific rank.\n"
-                  "Classifications on higher ranks will be estimated by "
-                  "distributing them down according to the relative "
-                  "abundances of classifications on or below the given rank. "
-                  "(Valid values: "s + taxon_rank_names() + ")\n"s +
-                  "If '-abundances <file>' was given, this list will "
-                  "be printed to the same file.\n"
-                  "default: "s + (false ? "on" : "off"))
-        )
-        ,
         "ANALYSIS: RAW DATABASE HITS" %
         (
             option("-allhits", "-all-hits").set(opt.showAllHits)
@@ -796,22 +765,6 @@ classification_analysis_cli(classification_analysis_options& opt, error_messages
                 %("Show locations in candidate reference sequences.\n"
                   "Activates option '-tophits'.\n"
                   "default: "s + (opt.showLocations ? "on" : "off"))
-            // ,
-            // (   option("-hits-per-ref", "-hits-per-seq",
-            //            "-hits-per-tgt", "-hits-per-target")
-            //         .set(opt.showHitsPerTargetList) &
-            //     opt_value("file", opt.targetMappingsFile)
-            // )
-            //     %("Unavailable in RNACache.")
-        )
-        ,
-        "ANALYSIS: ALIGNMENTS" %
-        group(
-            option("-align", "-alignment").set(opt.showAlignment)
-                %("Show semi-global alignment to best candidate reference sequence.\n"
-                  "Original files of reference sequences must be available.\n"
-                  "This feature decreases the querying speed!\n"
-                  "default: "s + (opt.showAlignment ? "on" : "off"))
         )
     );
 }
@@ -986,7 +939,7 @@ query_mode_cli(query_options& opt, error_messages& err)
     "CLASSIFICATION RESULT FORMATTING" %
         classification_output_format_cli(opt.output.format, err)
     ,
-    classification_analysis_cli(opt.output.analysis, err)
+    classification_analysis_cli(opt.output.analysis)
     ,
     "ADVANCED: GROUND TRUTH BASED EVALUATION" %
         classification_evaluation_cli(opt.output.evaluate, err)
@@ -1062,21 +1015,16 @@ get_query_options(const cmdline_args& args, query_options opt)
 
     //output file consistency checks
     auto& ana = opt.output.analysis;
-    if(ana.targetMappingsFile == opt.queryMappingsFile) ana.targetMappingsFile.clear();
-    if(ana.abundanceFile == opt.queryMappingsFile) ana.abundanceFile.clear();
 
     // output option checks and consistency
 
-    //always show query ids if hits per target list requested
     auto& fmt = opt.output.format;
 
-    if(ana.showHitsPerTargetList) fmt.showQueryIds = true;
 
     // modify output tokens for separate column printig
     if(fmt.useSeparateCols) {
         fmt.collapseUnclassifiedLineages = false;
         fmt.tokens.taxSeparator = fmt.tokens.column;
-        fmt.tokens.rankSuffix   = fmt.tokens.column;
         fmt.tokens.taxidPrefix  = fmt.tokens.column;
         fmt.tokens.taxidSuffix  = "";
     }

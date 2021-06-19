@@ -37,7 +37,7 @@ namespace mc {
 
 /*************************************************************************//**
  *
- * @brief records matches (and their query origin) per classification target
+ * @brief records matches (and their query) per target
  *
  *****************************************************************************/
 class matches_per_target

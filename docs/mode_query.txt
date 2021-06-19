@@ -10,7 +10,7 @@ SYNOPSIS
 DESCRIPTION
 
     Map sequences (short reads, long reads, ...)
-    to their most likely reference sequence of origin.
+    to their most likely reference sequences of origin.
 
 
 BASIC PARAMETERS
@@ -64,13 +64,23 @@ PAIRED-END READ HANDLING
 
 CLASSIFICATION
 
-    -hitmin <t>       Sets classification threshhold to <t>.
-                      A read will not be classified if less than t features from
-                      the database match. Higher values will increase precision
-                      at the expense of sensitivity.
+    -hitmin <t>       Sets classification threshhold 't^min' to <t>.
+                      All candidates with fewer hits are discarded from the
+                      query's candidate set. Higher values will increase
+                      precision at the expense of recall.
                       default: 4
 
-    -maxcand <#>      (Requires changes in config.h)
+    -maxcand <#>      Has no effect. (Requires selection of
+                      best_distinct_matches_... candidate generator in
+                      config.h).
+
+
+    -hit-cutoff <t>   Sets classification threshhold 't^cutoff' to <t>.
+                      All candidates with fewer hits (relative to the maximal
+                      candidate) are discarded from the query's candidate set.
+                      Higher values will increase precision at the expense of
+                      recall.
+                      default: 0.800000
 
 
 GENERAL OUTPUT FORMATTING
@@ -102,9 +112,6 @@ CLASSIFICATION RESULT FORMATTING
     -taxids-only      Print taxon ids instead of taxon names.
                       default: off
 
-    -omit-ranks       Do not print taxon rank names.
-                      default: on
-
     -separate-cols    Prints *all* mapping information (rank, taxon name, taxon
                       ids) in separate columns (see option '-separator').
                       default: off
@@ -122,29 +129,6 @@ CLASSIFICATION RESULT FORMATTING
                       default: off
 
 
-ANALYSIS: ABUNDANCES
-
-    -abundances <file>
-                      Show absolute and relative abundance of each taxon.
-                      If a valid filename is given, the list will be written to
-                      this file.
-                      default: off
-
-    -abundance-per <rank>
-                      Show absolute and relative abundances for each taxon on
-                      one specific rank.
-                      Classifications on higher ranks will be estimated by
-                      distributing them down according to the relative
-                      abundances of classifications on or below the given rank.
-                      (Valid values: sequence, form, variety, subspecies,
-                      species, subgenus, genus, subtribe, tribe, subfamily,
-                      family, suborder, order, subclass, class, subphylum,
-                      phylum, subkingdom, kingdom, domain)
-                      If '-abundances <file>' was given, this list will be
-                      printed to the same file.
-                      default: off
-
-
 ANALYSIS: RAW DATABASE HITS
 
     -allhits          For each query, print all feature hits in database.
@@ -155,36 +139,21 @@ ANALYSIS: RAW DATABASE HITS
                       default: off
 
 
-ANALYSIS: ALIGNMENTS
-
-    -align            Show semi-global alignment to best candidate reference
-                      sequence.
-                      Original files of reference sequences must be available.
-                      This feature decreases the querying speed!
-                      default: off
-
-
 ADVANCED: GROUND TRUTH BASED EVALUATION
 
     -ground-truth     Report correct query taxa if known.
                       Queries need to have either a 'taxid|<number>' entry in
                       their header or a sequence id that is also present in the
                       database.
-                      This feature decreases the querying speed!
+                      This feature decreases querying speed!
                       default: off
 
-    -precision        Report precision & sensitivity by comparing query taxa
-                      (ground truth) and mapped taxa.
+    -accuracy         Report accuracy stats by comparing query origins (ground
+                      truth) and mappings.
                       Queries need to have either a 'taxid|<number>' entry in
                       their header or a sequence id that is also found in the
                       database.
-                      This feature decreases the querying speed!
-                      default: off
-
-    -taxon-coverage   Report true/false positives and true/false negatives.This
-                      option turns on '-precision', so ground truth data needs
-                      to be available.
-                      This feature decreases the querying speed!
+                      This feature might decrease querying speed!
                       default: off
 
 
@@ -212,33 +181,22 @@ ADVANCED: DATABASE MODIFICATION
                       querying speed. Note that an upper hard limit is always
                       imposed by the data type used for the hash table bucket
                       size (set with compilation macro
-                      '-DMC_LOCATION_LIST_SIZE_TYPE').
+                      '-DMC_LOCATION_LIST_SIZE_TYPE').Can also be set in query
+                      mode.
                       default: 254
 
     -remove-overpopulated-features
                       Removes all features that have reached the maximum allowed
                       amount of locations per feature. This can improve querying
                       speed and can be used to remove non-discriminative
-                      features.
+                      features.Can also be set in query mode.
                       default: on
 
-    -remove-ambig-features <rank>
-                      Removes all features that have more distinct reference
-                      sequence on the given taxonomic rank than set by
-                      '-max-ambig-per-feature'. This can decrease the database
-                      size significantly at the expense of sensitivity. Note
-                      that the lower the given taxonomic rank is, the more
-                      pronounced the effect will be.
-                      Valid values: sequence, form, variety, subspecies,
-                      species, subgenus, genus, subtribe, tribe, subfamily,
-                      family, suborder, order, subclass, class, subphylum,
-                      phylum, subkingdom, kingdom, domain
-                      default: off
-
     -max-ambig-per-feature <#>
-                      Maximum number of allowed different reference sequence
-                      taxa per feature if option '-remove-ambig-features' is
-                      used.
+                      Maximum number of allowed different reference sequences
+                      per feature. Removes all features exceeding this limit
+                      from database.
+                      default: off
 
     -max-load-fac <factor>
                       maximum hash table load factor;

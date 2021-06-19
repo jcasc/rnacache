@@ -35,33 +35,22 @@ ADVANCED OPTIONS
                       querying speed. Note that an upper hard limit is always
                       imposed by the data type used for the hash table bucket
                       size (set with compilation macro
-                      '-DMC_LOCATION_LIST_SIZE_TYPE').
+                      '-DMC_LOCATION_LIST_SIZE_TYPE').Can also be set in query
+                      mode.
                       default: 254
 
     -remove-overpopulated-features
                       Removes all features that have reached the maximum allowed
                       amount of locations per feature. This can improve querying
                       speed and can be used to remove non-discriminative
-                      features.
+                      features.Can also be set in query mode.
                       default: on
 
-    -remove-ambig-features <rank>
-                      Removes all features that have more distinct reference
-                      sequence on the given taxonomic rank than set by
-                      '-max-ambig-per-feature'. This can decrease the database
-                      size significantly at the expense of sensitivity. Note
-                      that the lower the given taxonomic rank is, the more
-                      pronounced the effect will be.
-                      Valid values: sequence, form, variety, subspecies,
-                      species, subgenus, genus, subtribe, tribe, subfamily,
-                      family, suborder, order, subclass, class, subphylum,
-                      phylum, subkingdom, kingdom, domain
-                      default: off
-
     -max-ambig-per-feature <#>
-                      Maximum number of allowed different reference sequence
-                      taxa per feature if option '-remove-ambig-features' is
-                      used.
+                      Maximum number of allowed different reference sequences
+                      per feature. Removes all features exceeding this limit
+                      from database.
+                      default: off
 
     -max-load-fac <factor>
                       maximum hash table load factor;

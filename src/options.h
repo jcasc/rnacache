@@ -219,7 +219,6 @@ enum class map_view_mode : unsigned char {
  *****************************************************************************/
 struct taxon_print_style {
     bool showName = true;
-    bool showRankName = false;
     bool showId = false;
 };
 
@@ -309,8 +308,6 @@ struct formatting_tokens {
     std::string column = "\t|\t";
     //taxon separator (in lineage output)
     std::string taxSeparator = ",";
-    //separates rank and taxon name or rank and taxid
-    std::string rankSuffix = ":";
     //if both taxid AND taxon name are to be printed,
     //taxids will be enclosed by these:
     std::string taxidPrefix = "(";
@@ -357,21 +354,6 @@ struct classification_analysis_options
     //show candidate position(s) in reference sequence(s)
     bool showLocations = false;
 
-    //make statistics of semi-global alignment scores of queries against
-    //target candidate(s)
-    bool showAlignment = false;
-
-    //show list of target -> hit mappings
-    bool showHitsPerTargetList = false;
-    //output filename for mappings per target
-    std::string targetMappingsFile;
-
-    //show list of taxon -> number of reads
-    bool showTaxAbundances = false;
-    //show estimated number of reads at specific rank
-    taxon_rank showAbundanceEstimatesOnRank = taxon_rank::none;
-    //output filename for mappings per taxon
-    std::string abundanceFile;
 };
 
 
@@ -429,11 +411,6 @@ struct query_options
 
     classification_options classify;
     classification_output_options output;
-
-    bool make_tax_counts() const noexcept {
-        return output.analysis.showTaxAbundances ||
-            (output.analysis.showAbundanceEstimatesOnRank != taxon_rank::none);
-    }
 
     rna_mode rnaMode = rna_mode::map;
 

@@ -58,11 +58,6 @@ void show_taxon(std::ostream&,
                 const classification_output_formatting&,
                 const taxon* classified);
 
-void show_taxon(std::ostream&,
-                const database&,
-                const classification_output_formatting&,
-                const std::vector<const taxon*>& classified);
-
 
 /*************************************************************************//**
  *

@@ -40,7 +40,6 @@ namespace mc {
 //-----------------------------------------------------------------------------
 void show_query_parameters(std::ostream& os, const query_options& opt)
 {
-    const auto& analysis = opt.output.analysis;
     const auto& fmt = opt.output.format;
     const auto& comment = fmt.tokens.comment;
 
@@ -74,26 +73,6 @@ void show_query_parameters(std::ostream& os, const query_options& opt)
            << comment << "  Max insert size considered " << opt.classify.insertSizeMax << ".\n";
     }
 
-    if(analysis.showAlignment) {
-        os << comment << "Query sequences will be aligned to best candidate target => SLOW!\n";
-    }
-
-    if(analysis.showHitsPerTargetList) {
-        os << comment << "A list of hits per reference sequence "
-           << "will be generated after the read mapping.\n";
-    }
-
-    if(analysis.showHitsPerTargetList) {
-        os << comment << "A list of absolute and relative abundances per taxon "
-           << "will be generated after the read mapping.\n";
-    }
-
-    if(analysis.showAbundanceEstimatesOnRank != taxon_rank::none) {
-        os << comment << "A list of absolute and relative abundances for each '"
-           << taxonomy::rank_name(analysis.showAbundanceEstimatesOnRank)
-           << "' will be generated after the read mapping.\n";
-    }
-
     os << comment << "Using " << opt.performance.numThreads << " threads\n";
 }
 
@@ -106,10 +85,6 @@ void show_taxon_header(std::ostream& os,
 {
     const auto& style = opt.taxonStyle;
     const auto& fmt = opt.tokens;
-
-    if(style.showRankName) {
-        os << prefix << "rank" << fmt.rankSuffix;
-    }
 
     if(style.showName) {
         os << prefix << "taxname";
@@ -128,18 +103,9 @@ void show_taxon_header(std::ostream& os,
 void print_taxon(std::ostream& os,
                  const std::string& taxName,
                  taxon_id id,
-                 taxon_rank rank,
                  taxon_print_style style,
                  const formatting_tokens& fmt)
 {
-    if(style.showRankName) {
-        if(rank == taxon_rank::none) {
-            os << fmt.none << fmt.rankSuffix;
-        } else {
-            os << taxonomy::rank_name(rank) << fmt.rankSuffix;
-        }
-    }
-
     if(style.showName) {
         os << taxName;
         if(style.showId) {
@@ -165,10 +131,10 @@ void show_lineage(std::ostream& os,
     for(auto r = lowest; r <= highest; ++r) {
         const taxon* tax = lineage[int(r)];
         if(tax) {
-            print_taxon(os, tax->name(), tax->id(), tax->rank(), style, fmt);
+            print_taxon(os, tax->name(), tax->id(), style, fmt);
         }
         else {
-            print_taxon(os, fmt.none, taxonomy::none_id(), r, style, fmt);
+            print_taxon(os, fmt.none, taxonomy::none_id(), style, fmt);
         }
         if(r < highest) {
             os << fmt.taxSeparator;
@@ -186,7 +152,7 @@ void show_blank_lineage(std::ostream& os,
                         const formatting_tokens& fmt)
 {
     for(auto r = lowest; r <= highest; ++r) {
-        print_taxon(os, fmt.none, taxonomy::none_id(), taxon_rank::none, style, fmt);
+        print_taxon(os, fmt.none, taxonomy::none_id(), style, fmt);
         if(r < highest) os << fmt.taxSeparator;
     }
 }
@@ -202,8 +168,7 @@ void show_taxon(std::ostream& os,
     if(!tax) {
         if(opt.collapseUnclassifiedLineages) { // TODO
             if(opt.taxonStyle.showId
-               && !opt.taxonStyle.showName
-               && !opt.taxonStyle.showRankName)
+               && !opt.taxonStyle.showName)
             {
                 os << taxonomy::none_id();
             }

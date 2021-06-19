@@ -252,42 +252,13 @@ public:
                            return a.hits > b.hits;
                        };
 
-        if(cand.tax->rank() == taxon_rank::Sequence) {
-            auto i = std::upper_bound(top_.begin(), top_.end(), cand, greater);
+        auto i = std::upper_bound(top_.begin(), top_.end(), cand, greater);
 
-            if(i != top_.end() || top_.size() < rules.maxCandidates) {
-                top_.insert(i, cand);
+        if(i != top_.end() || top_.size() < rules.maxCandidates) {
+            top_.insert(i, cand);
 
-                if(top_.size() > rules.maxCandidates)
-                    top_.resize(rules.maxCandidates);
-            }
-        }
-        //above sequence level, taxa can occur more than once
-        else {
-            auto i = std::find_if(top_.begin(), top_.end(),
-                [&] (const match_candidate& c) {
-                    return c.tax == cand.tax;
-                });
-
-            if(i != top_.end()) {
-                //taxon already in list, update, if more hits
-                if(cand.hits > i->hits) {
-                    *i = cand;
-                    std::sort(top_.begin(), i+1, greater);
-                }
-            }
-            //taxon not in list yet
-            else  {
-                auto j = std::upper_bound(top_.begin(), top_.end(), cand, greater);
-
-                if(j != top_.end() || top_.size() < rules.maxCandidates) {
-                    top_.insert(j, cand);
-
-                    if(top_.size() > rules.maxCandidates)
-                        top_.resize(rules.maxCandidates);
-                }
-            }
-
+            if(top_.size() > rules.maxCandidates)
+                top_.resize(rules.maxCandidates);
         }
         return true;
     };
