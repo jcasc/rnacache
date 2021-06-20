@@ -383,7 +383,7 @@ struct alignment_targets {
         os << "@HD\tVN:1.0 SO:unsorted\n";
         for(const auto& tgt: targets_)
             os << "@SQ\tSN:" << tgt.header << "\tLN:" << tgt.seq.size() << '\n';
-        os << "@PG\tID:rnaache\tPN:rnaache\tVN:" << MC_VERSION_STRING << '\n';
+        os << "@PG\tID:rnaache\tPN:rnaache\tVN:" << RC_VERSION_STRING << '\n';
     }
 
     std::string get_sam_header() const {

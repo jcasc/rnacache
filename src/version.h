@@ -1,8 +1,9 @@
 /******************************************************************************
  *
- * MetaCache - Meta-Genomic Classification Tool
+ * RNACache - Transcriptomic Mapping Tool
  *
- * Copyright (C) 2016-2020 André Müller (muellan@uni-mainz.de)
+ * Copyright (C) 2016-2021 Julian Cascitti (jcascitt@students.uni-mainz.de)
+ *                       & André Müller (muellan@uni-mainz.de)
  *                       & Robin Kobus  (kobus@uni-mainz.de)
  *
  * This program is free software: you can redistribute it and/or modify
@@ -20,15 +21,15 @@
  *
  *****************************************************************************/
 
-#ifndef MC_VERSION_H_
-#define MC_VERSION_H_
+#ifndef RC_VERSION_H_
+#define RC_VERSION_H_
 
 
-#define MC_VERSION 20200309
+#define RC_VERSION 20210621
 
-#define MC_DB_VERSION 20200323
+#define RC_DB_VERSION 20210621
 
-#define MC_VERSION_STRING "1.1.1r"
+#define RC_VERSION_STRING "0.9.0"
 
 
 #endif

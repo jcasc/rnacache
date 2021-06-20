@@ -87,11 +87,11 @@ void database::read(const std::string& filename, scope what)
     uint64_t dbVer = 0;
     read_binary(is, dbVer);
 
-    if(uint64_t( MC_DB_VERSION ) != dbVer) {
+    if(uint64_t( RC_DB_VERSION ) != dbVer) {
         throw file_read_error{
             "Database " + filename + " (version " + std::to_string(dbVer) + ")"
             + " is incompatible\nwith this version of RNACache"
-            + " (uses version " + std::to_string(MC_DB_VERSION) + ")" };
+            + " (uses version " + std::to_string(RC_DB_VERSION) + ")" };
     }
 
     //data type info
@@ -165,7 +165,7 @@ void database::write(const std::string& filename) const
     }
 
     //database version info
-    write_binary(os, uint64_t( MC_DB_VERSION ));
+    write_binary(os, uint64_t( RC_DB_VERSION ));
 
     //data type widths
     write_binary(os, uint8_t(sizeof(feature)));

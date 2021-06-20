@@ -254,8 +254,8 @@ void print_static_properties(const database& db)
 
     std::cout
         << "------------------------------------------------\n"
-        << "RNACache version    " << MC_VERSION_STRING << " (" << MC_VERSION << ")\n"
-        << "database version     " << MC_DB_VERSION << '\n'
+        << "RNACache version    " << RC_VERSION_STRING << " (" << RC_VERSION << ")\n"
+        << "database version     " << RC_DB_VERSION << '\n'
         << "------------------------------------------------\n"
         << "sequence type        " << type_name<database::sequence>() << '\n'
         << "target id type       " << type_name<target_id>() << " " << (sizeof(target_id)*CHAR_BIT) << " bits\n"

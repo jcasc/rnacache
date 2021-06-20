@@ -112,10 +112,6 @@ CLASSIFICATION RESULT FORMATTING
     -taxids-only      Print taxon ids instead of taxon names.
                       default: off
 
-    -separate-cols    Prints *all* mapping information (rank, taxon name, taxon
-                      ids) in separate columns (see option '-separator').
-                      default: off
-
     -separator <text> Sets string that separates output columns.
                       default: '\t|\t'
 

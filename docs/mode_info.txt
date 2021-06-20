@@ -2,8 +2,6 @@ SYNOPSIS
 
     rnacache info [<database> ]
     rnacache info [<database> reference [<sequence_id>]... ]
-    rnacache info [<database> rank <rank_name> ]
-    rnacache info [<database> lineages ]
     rnacache info [<database> statistics ]
     rnacache info [<database> locations ]
     rnacache info [<database> featurecounts ]
@@ -44,10 +42,6 @@ PARAMETERS
                       An RNACache database contains min-hash signatures of
                       reference sequences.
 
-    <rank_name>       Valid values: sequence, form, variety, subspecies,
-                      species, subgenus, genus, subtribe, tribe, subfamily,
-                      family, suborder, order, subclass, class, subphylum,
-                      phylum, subkingdom, kingdom, domain
 
 
 EXAMPLES
