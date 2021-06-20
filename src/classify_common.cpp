@@ -125,17 +125,6 @@ ground_truth_taxon(const database& db, const string& header)
 }
 
 
-//-----------------------------------------------------------------------------
-const taxon*
-ground_truth_ranked_taxon(const database& db, const string& header)
-{
-    const taxon* tax = ground_truth_taxon(db, header);
-    if(tax) return db.next_ranked_ancestor(tax);
-
-    return nullptr;
-}
-
-
 /*************************************************************************//**
  *
  * @brief shows one query mapping line

@@ -95,16 +95,6 @@ private:
  *  H E L P E R S
  *
  *****************************************************************************/
-string taxon_rank_names(const string& separator = ", ")
-{
-    string s;
-    for(auto r = taxon_rank::Sequence; r < taxon_rank::Domain; ++r) {
-        s += taxonomy::rank_name(r);
-        s += separator;
-    }
-    s += taxonomy::rank_name(taxon_rank::Domain);
-    return s;
-}
 
 
 
@@ -184,22 +174,6 @@ catch_unknown(error_messages& err) {
     return clipp::any(clipp::match::prefix{"-"},
         [&](const string& arg) { err += "unknown argument: "s + arg; });
 }
-
-
-
-//-------------------------------------------------------------------
-taxon_rank rank_from_name(const string& name, error_messages& err)
-{
-    auto r = taxonomy::rank_from_name(name);
-
-    if(r == taxon_rank::none) {
-        err += "Unknown taxonomic rank '"s + name + "'!\n";
-        err += "Valid rank names are:\n    " + taxon_rank_names("\n    ") + "\n";
-    }
-
-    return r;
-}
-
 
 
 //-------------------------------------------------------------------
@@ -348,13 +322,13 @@ database_storage_options_cli(database_storage_options& opt, error_messages& err)
           "default: "s + (opt.removeOverpopulatedFeatures ? "on" : "off"))
     )
     ,
-    (   option("-max-ambig-per-feature").set(opt.removeAmbigFeaturesOnRank, taxon_rank::Sequence) &
+    (   option("-max-ambig-per-feature").set(opt.removeAmbigFeatures) &
         integer("#", opt.maxTaxaPerFeature)
             .if_missing([&]{ err += "Number missing after '-max-ambig-per-feature'!"; })
     )
         % ("Maximum number of allowed different reference sequences per feature. "
            "Removes all features exceeding this limit from database.\n"
-           "default: "s + (opt.removeAmbigFeaturesOnRank != taxon_rank::none ? to_string(opt.maxTaxaPerFeature) : "off"))
+           "default: "s + (opt.removeAmbigFeatures ? to_string(opt.maxTaxaPerFeature) : "off"))
     ,
     (   option("-max-load-fac", "-max-load-factor") &
         number("factor", opt.maxLoadFactor)
@@ -1119,17 +1093,6 @@ info_mode_cli(info_options& opt, error_messages& err)
                     .set(opt.mode, info_mode::targets),
                 opt_values("sequence_id", opt.targetIds)
             ),
-            (
-                command("rank").set(opt.mode, info_mode::tax_ranks),
-                value("rank_name", [&](const string& name) {
-                        opt.rank = rank_from_name(name, err);
-                    })
-                    .if_missing([&]{ err += "Rank name missing!"; })
-                    .doc("Valid values: "s + taxon_rank_names())
-            ),
-            command("lineages", "lineage", "lin")
-                .set(opt.mode, info_mode::tax_lineages)
-            ,
             command("statistics", "stat")
                 .set(opt.mode, info_mode::db_statistics)
             ,

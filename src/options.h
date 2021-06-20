@@ -51,18 +51,6 @@ namespace mc {
  *
  *****************************************************************************/
 
-/*************************************************************************//**
- * @brief taxonomic information options
- *****************************************************************************/
-struct taxonomy_options
-{
-    std::string nodesFile;
-    std::string namesFile;
-    std::string mergeFile;
-    std::vector<std::string> mappingPreFilesLocal;
-    std::vector<std::string> mappingPreFilesGlobal;
-};
-
 
 
 /*************************************************************************//**
@@ -99,7 +87,7 @@ struct database_storage_options
 
 
     // restrict number of taxa (on a given rank) per feature
-    taxon_rank removeAmbigFeaturesOnRank = taxon_rank::none;
+    bool removeAmbigFeatures = false;
     int maxTaxaPerFeature = 1;
 };
 
@@ -127,8 +115,6 @@ struct build_options
 
     sketching_options sketching;
     database_storage_options dbconfig;
-
-    taxonomy_options taxonomy;
 
     info_level infoLevel = info_level::moderate;
 };
@@ -440,7 +426,6 @@ std::string query_mode_docs();
 enum class info_mode {
     basic,
     targets,
-    tax_lineages, tax_ranks,
     db_config, db_statistics, db_feature_map, db_feature_counts
 };
 
@@ -448,7 +433,6 @@ struct info_options {
     std::string dbfile;
     info_mode mode = info_mode::basic;
     std::vector<std::string> targetIds;
-    taxon_rank rank = taxon_rank::none;
 };
 
 

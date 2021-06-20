@@ -42,7 +42,6 @@
 #include "database.h"
 #include "printing.h"
 #include "sequence_io.h"
-#include "taxonomy_io.h"
 
 #include "batch_processing.h"
 
@@ -54,100 +53,6 @@ using std::cout;
 using std::cerr;
 using std::flush;
 using std::endl;
-
-
-
-/*************************************************************************//**
- *
- * @brief Alternative way of providing taxonomic mappings.
- *        The input file must be a text file with each line in the format:
- *        accession  accession.version taxid gi
- *        (like the NCBI's *.accession2version files)
- *
- *****************************************************************************/
-void rank_targets_with_mapping_file(database& db,
-                                    std::set<const taxon*>& targetTaxa,
-                                    const string& mappingFile,
-                                    info_level infoLvl)
-{
-    const bool showInfo = infoLvl != info_level::silent;
-
-    if(targetTaxa.empty()) return;
-
-    std::ifstream is {mappingFile};
-    if(!is.good()) return;
-
-    const auto fsize = file_size(mappingFile);
-
-    if(showInfo) {
-        cout << "Try to map sequences to taxa using '" << mappingFile
-             << "' (" << std::max(std::streamoff(1),
-                                 fsize/(1024*1024)) << " MB)" << endl;
-    }
-
-    bool showProgress = showInfo && fsize > 100000000;
-    //accession2taxid files have 40-450M lines
-    //update progress indicator every 1M lines
-    size_t step = 0;
-    size_t statStep = 1UL << 20;
-    if(showProgress) show_progress_indicator(cout, 0);
-
-    string acc;
-    string accver;
-    std::uint64_t taxid;
-    string gi;
-
-    //skip header
-    getline(is, acc);
-    acc.clear();
-
-    while(is >> acc >> accver >> taxid >> gi) {
-        //target in database?
-        //accession.version is the default
-        const taxon* tax = db.taxon_with_name(accver);
-
-        if(!tax) {
-            tax = db.taxon_with_similar_name(acc);
-            if(!tax) tax = db.taxon_with_name(gi);
-        }
-
-        //if in database then set parent
-        if(tax) {
-            auto i = targetTaxa.find(tax);
-            if(i != targetTaxa.end()) {
-                db.reset_parent(*tax, taxid);
-                targetTaxa.erase(i);
-                if(targetTaxa.empty()) break;
-            }
-        }
-
-        if(showProgress && !(++step % statStep)) {
-            auto pos = is.tellg();
-            show_progress_indicator(cout, pos / float(fsize));
-        }
-    }
-
-    if(showProgress) clear_current_line(cout);
-}
-
-
-
-/*************************************************************************//**
- *
- * @return target taxa that have no parent taxon assigned
- *
- *****************************************************************************/
-std::set<const taxon*>
-unranked_targets(const database& db)
-{
-    auto res = std::set<const taxon*>{};
-
-    for(const auto& tax : db.target_taxa()) {
-        if(!tax.has_parent()) res.insert(&tax);
-    }
-
-    return res;
-}
 
 
 
@@ -203,7 +108,6 @@ struct input_sequence {
     sequence_reader::header_type header;
     sequence_reader::data_type data;
     database::file_source fileSource;
-    taxon_id fileTaxId = 0;
 };
 
 using input_batch = std::vector<input_sequence>;
@@ -220,7 +124,6 @@ using input_batch = std::vector<input_sequence>;
 void add_targets_to_database(
     database& db,
     const input_batch& batch,
-    const std::map<string,taxon_id>& sequ2taxid,
     info_level infoLvl = info_level::moderate)
 {
     for(const auto& seq : batch) {
@@ -232,23 +135,14 @@ void add_targets_to_database(
             // use entire header if neccessary
             if(seqId.empty()) seqId = seq.header;
 
-            taxon_id parentTaxId = seq.fileTaxId;
-
-            if(parentTaxId == taxonomy::none_id())
-                parentTaxId = find_taxon_id(sequ2taxid, seqId);
-
-            if(parentTaxId == taxonomy::none_id())
-                parentTaxId = extract_taxon_id(seq.header);
-
             if(infoLvl == info_level::verbose) {
                 cout << "[" << seqId;
-                if(parentTaxId > 0) cout << ":" << parentTaxId;
                 cout << "] ";
             }
 
             // try to add to database
             bool added = db.add_target(
-                seq.data, seqId, parentTaxId, seq.fileSource);
+                seq.data, seqId, seq.fileSource);
 
             if(infoLvl == info_level::verbose && !added) {
                 cout << seqId << " not added to database" << endl;
@@ -267,7 +161,6 @@ void add_targets_to_database(
  *****************************************************************************/
 void add_targets_to_database(database& db,
     const std::vector<string>& infiles,
-    const std::map<string,taxon_id>& sequ2taxid,
     info_level infoLvl = info_level::moderate)
 {
     int n = infiles.size();
@@ -299,7 +192,7 @@ void add_targets_to_database(database& db,
 
     batch_executor<input_sequence> executor { execOpt,
         [&] (int, const auto& batch) {
-            add_targets_to_database(db, batch, sequ2taxid, infoLvl);
+            add_targets_to_database(db, batch, infoLvl);
         }};
 
     // read sequences in main thread
@@ -314,8 +207,6 @@ void add_targets_to_database(database& db,
             const auto fileId = extract_accession_string(
                                     filename, sequence_id_type::acc_ver);
 
-            const taxon_id fileTaxId = find_taxon_id(sequ2taxid, fileId);
-
             auto reader = make_sequence_reader(filename);
 
             while(reader->has_next() && executor.valid()) {
@@ -323,7 +214,6 @@ void add_targets_to_database(database& db,
                 auto& seq = executor.next_item();
                 seq.fileSource.filename = filename;
                 seq.fileSource.index = reader->index();
-                seq.fileTaxId = fileTaxId;
                 reader->next_header_and_data(seq.header, seq.data);
             }
 
@@ -369,17 +259,10 @@ void prepare_database(database& db, const build_options& opt)
              << endl;
     }
 
-    if(dbconf.removeAmbigFeaturesOnRank != taxon_rank::none &&
+    if(dbconf.removeAmbigFeatures &&
        opt.infoLevel != info_level::silent)
     {
-        if(db.non_target_taxon_count() > 1) {
-            cout << "Ambiguous features on rank "
-                 << taxonomy::rank_name(dbconf.removeAmbigFeaturesOnRank)
-                 << " will be removed afterwards.\n";
-        } else {
-            cout << "Could not determine amiguous features "
-                 << "due to missing taxonomic information.\n";
-        }
+        cout << "Ambiguous features will be removed afterwards.\n";
     }
 }
 
@@ -413,18 +296,14 @@ void post_process_features(database& db, const build_options& opt)
         }
     }
 
-    if(dbconf.removeAmbigFeaturesOnRank != taxon_rank::none &&
-        db.non_target_taxon_count() > 1)
+    if(dbconf.removeAmbigFeatures)
     {
         if(notSilent) {
-            cout << "\nRemoving ambiguous features on rank "
-                 << taxonomy::rank_name(dbconf.removeAmbigFeaturesOnRank)
-                 << "... " << flush;
+            cout << "\nRemoving ambiguous features... " << flush;
         }
 
         auto old = db.feature_count();
-        auto rem = db.remove_ambiguous_features(dbconf.removeAmbigFeaturesOnRank,
-                                                dbconf.maxTaxaPerFeature);
+        auto rem = db.remove_ambiguous_features(dbconf.maxTaxaPerFeature);
 
         if(notSilent) {
             cout << rem << " of " << old << "." << endl;
@@ -454,14 +333,9 @@ void add_to_database(database& db, const build_options& opt)
     if(!opt.infiles.empty()) {
         const auto initNumTargets = db.target_count();
 
-        auto taxonMap = make_sequence_to_taxon_id_map(
-                            opt.taxonomy.mappingPreFilesLocal,
-                            opt.taxonomy.mappingPreFilesGlobal,
-                            opt.infiles, opt.infoLevel);
-
         if(notSilent) cout << "Processing reference sequences." << endl;
 
-        add_targets_to_database(db, opt.infiles, taxonMap, opt.infoLevel);
+        add_targets_to_database(db, opt.infiles, opt.infoLevel);
 
         if(notSilent) {
             clear_current_line(cout);

@@ -287,14 +287,8 @@ void print_content_properties(const database& db)
 {
     if(db.target_count() > 0) {
 
-        std::uint64_t numRankedTargets = 0;
-        for(const auto& t : db.target_taxa()) {
-            if(t.has_parent()) ++numRankedTargets;
-        }
-
         std::cout
         << "targets              " << db.target_count() << '\n'
-        << "ranked targets       " << numRankedTargets << '\n'
         << "taxa in tree         " << db.non_target_taxon_count() << '\n';
     }
 

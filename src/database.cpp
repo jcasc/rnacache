@@ -28,7 +28,6 @@ namespace mc {
 
 // ----------------------------------------------------------------------------
 bool database::add_target(const sequence& seq, taxon_name sid,
-                          taxon_id parentTaxid,
                           file_source source)
 {
     using std::begin;
@@ -51,10 +50,9 @@ bool database::add_target(const sequence& seq, taxon_name sid,
     source.windows = add_all_window_sketches(seq, targetCount);
 
     //insert sequence metadata as a new taxon
-    if(parentTaxid < 1) parentTaxid = 0;
     auto nit = taxa_.emplace(
-        taxid, parentTaxid, sid,
-        taxon_rank::Sequence, std::move(source));
+        taxid, sid,
+        std::move(source));
 
     //should never happen
     if(nit == taxa_.end()) {
@@ -67,8 +65,6 @@ bool database::add_target(const sequence& seq, taxon_name sid,
 
     //target id -> taxon lookup table
     targets_.push_back(newtax);
-
-    targetLineages_.mark_outdated();
 
     return true;
 }
@@ -106,26 +102,17 @@ void database::read(const std::string& filename, scope what)
         uint8_t windowSize = 0;  read_binary(is, windowSize);
         uint8_t bucketSize = 0;  read_binary(is, bucketSize);
         uint8_t taxidSize = 0;   read_binary(is, taxidSize);
-        uint8_t numTaxRanks = 0; read_binary(is, numTaxRanks);
 
         if( (sizeof(feature) != featureSize) ||
             (sizeof(target_id) != targetSize) ||
             (sizeof(bucket_size_type) != bucketSize) ||
-            (sizeof(window_id) != windowSize) )
+            (sizeof(window_id) != windowSize) ||
+            (sizeof(taxon_id) != taxidSize) )
         {
             throw file_read_error{
                 "Database " + filename +
                 " is incompatible with this variant of RNACache" +
                 " due to different data type sizes"};
-        }
-
-        if( (sizeof(taxon_id) != taxidSize) ||
-            (taxonomy::num_ranks != numTaxRanks) )
-        {
-            throw file_read_error{
-                "Database " + filename +
-                " is incompatible with this variant of RNACache" +
-                " due to different taxonomy data types"};
         }
     }
 
@@ -154,13 +141,8 @@ void database::read(const std::string& filename, scope what)
     //sequence id lookup
     name2tax_.clear();
     for(const auto& t : taxa_) {
-        if(t.rank() == taxon_rank::Sequence) {
-            name2tax_.insert({t.name(), &t});
-        }
+        name2tax_.insert({t.name(), &t});
     }
-
-    mark_cached_lineages_outdated();
-    update_cached_lineages(taxon_rank::Sequence);
 
     if(what == scope::metadata_only) return;
 
@@ -191,7 +173,6 @@ void database::write(const std::string& filename) const
     write_binary(os, uint8_t(sizeof(window_id)));
     write_binary(os, uint8_t(sizeof(bucket_size_type)));
     write_binary(os, uint8_t(sizeof(taxon_id)));
-    write_binary(os, uint8_t(taxonomy::num_ranks));
 
     //sketching parameters
     write_binary(os, targetSketcher_);
@@ -248,7 +229,7 @@ database::remove_features_with_more_locations_than(bucket_size_type n)
 
 // ----------------------------------------------------------------------------
 database::feature_count_type
-database::remove_ambiguous_features(taxon_rank r, bucket_size_type maxambig)
+database::remove_ambiguous_features(bucket_size_type maxambig)
 {
     feature_count_type rem = 0;
 
@@ -278,8 +259,6 @@ database::remove_ambiguous_features(taxon_rank r, bucket_size_type maxambig)
 
 // ----------------------------------------------------------------------------
 void database::clear() {
-    ranksCache_.clear();
-    targetLineages_.clear();
     name2tax_.clear();
     features_.clear();
 }
@@ -290,8 +269,6 @@ void database::clear() {
  * @brief very dangerous! clears feature map without memory deallocation
  */
 void database::clear_without_deallocation() {
-    ranksCache_.clear();
-    targetLineages_.clear();
     name2tax_.clear();
     features_.clear_without_deallocation();
 }

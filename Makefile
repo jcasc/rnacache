@@ -98,7 +98,6 @@ HEADERS = \
           src/stat_moments.h \
           src/string_utils.h \
           src/taxonomy.h \
-          src/taxonomy_io.h \
           src/timer.h \
           src/version.h \
           dep/edlib.h
@@ -117,7 +116,6 @@ SOURCES = \
           src/options.cpp \
           src/printing.cpp \
           src/sequence_io.cpp \
-          src/taxonomy_io.cpp \
           dep/edlib.cpp
 
 
@@ -170,9 +168,6 @@ $(2)/options.o : src/options.cpp $(HEADERS)
 	$(COMPILER) $(3) -c $$< -o $$@
 
 $(2)/sequence_io.o : src/sequence_io.cpp src/sequence_io.h src/io_error.h 
-	$(COMPILER) $(3) -c $$< -o $$@
-	
-$(2)/taxonomy_io.o : src/taxonomy_io.cpp src/taxonomy_io.h src/cmdline_utility.h src/filesys_utility.h 
 	$(COMPILER) $(3) -c $$< -o $$@
 
 $(2)/database.o : src/database.cpp $(HEADERS)

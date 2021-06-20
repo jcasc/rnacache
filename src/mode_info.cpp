@@ -124,16 +124,9 @@ void show_target_info(std::ostream& os, const database& db, const taxon& tax)
     os  << "Target " << tax.name() << "):\n"
         << "    source:     "
         << tax.source().filename << " / " << tax.source().index
-        << "\n    length:     " << tax.source().windows << " windows";
-
-    for(const taxon* t : db.ranks(tax)) {
-        if(t) {
-            auto rn = string(t->rank_name()) + ":";
-            rn.resize(12, ' ');
-            os << "\n    " << rn << "(" << t->id() << ") " << t->name();
-        }
-    }
-    os << '\n';
+        << "\n    length:     " << tax.source().windows << " windows"
+        << "\n    (ID) Name:  " << "(" << tax.id() << ") " << tax.name()
+        << '\n';
 }
 
 
@@ -174,84 +167,6 @@ void show_target_info(const info_options& opt)
  * @brief
  *
  *****************************************************************************/
-void show_lineage_table(const info_options& opt)
-{
-    using rank = taxonomy::rank;
-
-    auto db = make_database(opt.dbfile, database::scope::metadata_only);
-    if(db.target_count() < 1) return;
-
-    //table header
-    cout << "name";
-    for(auto r = rank::Sequence; r <= rank::Domain; ++r) {
-        cout << '\t' << taxonomy::rank_name(r);
-    }
-    cout << '\n';
-
-    //rows
-    for(const auto& tax : db.target_taxa()) {
-        cout << tax.name();
-        auto ranks = db.ranks(tax);
-        for(auto r = rank::Sequence; r <= rank::Domain; ++r) {
-            cout << '\t'
-                 << (ranks[int(r)] ? ranks[int(r)]->id() : taxonomy::none_id());
-        }
-        cout << '\n';
-    }
-}
-
-
-
-
-/*************************************************************************//**
- *
- * @brief
- *
- *****************************************************************************/
-void show_rank_statistics(const info_options& opt)
-{
-    if(opt.rank == taxon_rank::none) {
-        cerr << "Please specify a taxonomic rank:\n";
-        for(auto r = taxon_rank::Sequence; r <= taxon_rank::Domain; ++r) {
-            cerr << "    " << taxonomy::rank_name(r) << '\n';
-        }
-        return;
-    }
-
-    auto db = make_database(opt.dbfile, database::scope::metadata_only);
-
-    std::map<const taxon*, std::size_t> stat;
-
-    for(const auto& tax : db.target_taxa()) {
-        const taxon* t = db.ranks(tax)[int(opt.rank)];
-        if(t) {
-            auto it = stat.find(t);
-            if(it != stat.end()) {
-                ++(it->second);
-            } else {
-                stat.insert({t, 1});
-            }
-        }
-    }
-
-    cout << "Sequence distribution for rank '"
-         << taxonomy::rank_name(opt.rank) << "':\n"
-         << "taxid \t taxon_name \t sequences" << endl;
-
-    for(const auto& s : stat) {
-        cout << s.first->id() << " \t "
-             << s.first->name() << " \t "
-             << s.second << '\n';
-    }
-}
-
-
-
-/*************************************************************************//**
- *
- * @brief
- *
- *****************************************************************************/
 void show_basic_exec_info()
 {
     database db;
@@ -278,12 +193,6 @@ void main_mode_info(const cmdline_args& args)
             break;
         case info_mode::targets:
             show_target_info(opt);
-            break;
-        case info_mode::tax_lineages:
-            show_lineage_table(opt);
-            break;
-        case info_mode::tax_ranks:
-            show_rank_statistics(opt);
             break;
         case info_mode::db_config:
             show_database_config(opt.dbfile);

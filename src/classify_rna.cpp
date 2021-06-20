@@ -781,7 +781,7 @@ void show_sam(std::ostream& os,
         size_t primary = 0;
         for (const auto& cand: cands) {
             // still neccessary??? //TODO: check
-            if(!cand.tax || cand.tax->rank() != taxon_rank::Sequence)
+            if(!cand.tax)
                 continue;
                 
             alignments.emplace_back(query, cand.tax, refs, opt.classify.maxEditDist);
@@ -805,7 +805,7 @@ void show_sam(std::ostream& os,
         size_t max_cand = 0;
         for (size_t i = 0; i < cands.size(); ++i) {
             const auto& cand = cands[i];
-            if(!cand.tax || cand.tax->rank() != taxon_rank::Sequence)
+            if(!cand.tax)
                 continue;
             if (cand.hits > cands[max_cand].hits) {
                 max_cand = i;
@@ -813,7 +813,7 @@ void show_sam(std::ostream& os,
         }
         for (size_t i = 0; i < cands.size(); ++i) {
             const auto& cand = cands[i];
-            if(!cand.tax || cand.tax->rank() != taxon_rank::Sequence)
+            if(!cand.tax)
                 continue;
             show_sam_minimal(os, refs, query, cand.tax, i == max_cand);
         }

@@ -112,41 +112,12 @@ struct classification_results
 
 /*************************************************************************//**
  *
- * @brief Compare taxa by rank in descending order; root > ... > species.
- *        If ranks are equal, compare using sequence ids.
- *
- *****************************************************************************/
-struct rank_higher {
-    bool operator() (const taxon* lhs, const taxon* rhs) const noexcept {
-        if(lhs->rank() > rhs->rank()) return true;
-        if(lhs->rank() < rhs->rank()) return false;
-        return lhs->id() < rhs->id();
-    }
-};
-
-using taxon_count_map = std::map<const taxon*, float, rank_higher>;
-// using taxon_count_map = std::unordered_map<const taxon*, query_id>;
-
-
-
-/*************************************************************************//**
- *
  * @brief returns the ground truth taxon based on a sequence header info
  *        (needed for precision tests)
  *
  *****************************************************************************/
 const taxon*
 ground_truth_taxon(const database&, const std::string& header);
-
-
-/*************************************************************************//**
- *
- * @brief returns the next main-rank ancestor taxon of
- *        a sequence's ground truth taxon (extracted from sequence header info)
- *
- *****************************************************************************/
-const taxon*
-ground_truth_ranked_taxon(const database&, const std::string& header);
 
 
 
