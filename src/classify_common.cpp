@@ -95,8 +95,6 @@ make_classification_candidates(const database& db,
 
 }
 
-
-// WARNING !!!!!!!!!!!!!!!!!
 template classification_candidates
 make_classification_candidates<match_locations>(const database& db,
                                const classification_options& opt,

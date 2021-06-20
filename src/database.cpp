@@ -258,32 +258,15 @@ database::remove_ambiguous_features(taxon_rank r, bucket_size_type maxambig)
 
     if(maxambig == 0) maxambig = 1;
 
-    if(r == taxon_rank::Sequence) {
-        for(auto i = features_.begin(), e = features_.end(); i != e; ++i) {
-            if(!i->empty()) {
-                std::set<target_id> targets;
-                for(auto loc : *i) {
-                    targets.insert(loc.tgt);
-                    if(targets.size() > maxambig) {
-                        features_.clear(i);
-                        ++rem;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    else {
-        for(auto i = features_.begin(), e = features_.end(); i != e; ++i) {
-            if(!i->empty()) {
-                std::set<const taxon*> taxa;
-                for(auto loc : *i) {
-                    taxa.insert(targetLineages_[loc.tgt][int(r)]);
-                    if(taxa.size() > maxambig) {
-                        features_.clear(i);
-                        ++rem;
-                        break;
-                    }
+    for(auto i = features_.begin(), e = features_.end(); i != e; ++i) {
+        if(!i->empty()) {
+            std::set<target_id> targets;
+            for(auto loc : *i) {
+                targets.insert(loc.tgt);
+                if(targets.size() > maxambig) {
+                    features_.clear(i);
+                    ++rem;
+                    break;
                 }
             }
         }
