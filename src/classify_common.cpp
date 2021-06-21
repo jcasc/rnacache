@@ -23,15 +23,11 @@
 
 #include <thread>
 
+#include "classify_common.h"
 #include "sequence_io.h"
 #include "candidates.h"
 #include "printing.h"
 
-// SEE NOTES
-#include "querying.h"
-// !!!!!
-
-#include "classify_common.h"
 
 
 namespace mc {
@@ -188,7 +184,6 @@ void show_query_mapping(
 }
 
 
-// TEMPLATE WARNING TEMPLATE
 template void show_query_mapping<match_locations>(
     std::ostream& os,
     const database& db,

@@ -2,7 +2,7 @@
 
 # RNACache v0.9.0
 
-RNACache is a transcriptomic mapping tool that maps RNA-seq reads directly to a transcriptomes using MinHashing, a locality sensitive hashing technique based on pseudo-random k-mer subampling, and several filters utilizing both per-read and read-global information.
+RNACache is a transcriptomic mapping tool that maps RNA-seq reads directly to a transcriptomes using MinHashing, a locality sensitive hashing technique based on pseudo-random k-mer subampling, and several filters utilizing both per-read and read-global information. More information about its algorithm can be found in the [paper](https://doi.org/10.1007/978-3-030-77961-0_31).
 
 ## Installation
 
@@ -134,3 +134,8 @@ or jump directly to a mode's man page with:
 ./rnacache help query
 ...
 ```
+
+## See also
+
+* [MetaCache](https://github.com/muellan/metacache), a memory efficient, fast & precise taxnomomic classification system for metagenomic read mapping.
+
