@@ -27,9 +27,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <set>
 #include <map>
-#include <unordered_map>
-#include <unordered_set>
 #include <functional>
 #include <algorithm>
 #include <type_traits>
@@ -45,7 +44,6 @@
 #include "io_error.h"
 #include "io_options.h"
 #include "stat_combined.h"
-#include "taxonomy.h"
 #include "hash_multimap.h"
 #include "dna_encoding.h"
 #include "typename.h"
@@ -109,16 +107,11 @@ public:
     using target_id        = mc::target_id;
     using window_id        = mc::window_id;
     using bucket_size_type = mc::loclist_size_t;
-    //-----------------------------------------------------
-    // from taxonomy
-    using taxon_id       = taxonomy::taxon_id;
-    using taxon          = taxonomy::taxon;
-    using taxon_name     = taxonomy::taxon_name;
-    using file_source    = taxonomy::file_source;
-    using taxon_iterator = taxonomy::const_iterator;
-    using taxon_range    = taxonomy::const_range;
 
-    //-----------------------------------------------------
+    //---------------------------------------------------------------
+    using target_name = std::string;
+
+    //---------------------------------------------------------------
     using match_count_type = std::uint16_t;
 
     //---------------------------------------------------------------
@@ -132,8 +125,6 @@ public:
             std::runtime_error{"target count limit exceeded"}
         {}
     };
-
-    const taxon* taxon_of_target(target_id id) const { return taxa_[taxon_id_of_target(id)];}
 
     //-----------------------------------------------------
     /** @brief internal location representation = (window index, target index)
@@ -164,16 +155,101 @@ public:
     using match_locations = std::vector<location>;
 
 
+
+    /************************************************************
+     *
+     * @brief target metadata
+     *
+     ************************************************************/
+    class target {
+        friend class database;
+    public:
+        //-----------------------------------------------------
+        struct file_source {
+            using index_t   = std::uint_least64_t;
+            using window_id = std::uint_least64_t;
+
+            file_source() = default;
+
+            explicit
+            file_source(std::string filename, index_t index,
+                        window_id numWindows)
+            :
+                filename{std::move(filename)}, windows{numWindows}, index{index}
+            {}
+
+            std::string filename;
+            window_id windows;
+            index_t index;
+        };
+
+        target() = default;
+
+        explicit
+        target(std::string targetName,
+              file_source source)
+        :
+            name_{std::move(targetName)},
+            source_{std::move(source)}
+        {}
+
+        const target_name& name() const noexcept { return name_; }
+
+        const file_source& source() const noexcept { return source_; }
+
+        //-----------------------------------------------------
+        friend
+        void read_binary(std::istream& is, target& t) {
+            read_binary(is, t.name_);
+            read_binary(is, t.source_.filename);
+            read_binary(is, t.source_.index);
+            read_binary(is, t.source_.windows);
+        }
+
+        //-----------------------------------------------------
+        friend
+        void write_binary(std::ostream& os, const target& t) {
+            write_binary(os, t.name_);
+            write_binary(os, t.source_.filename);
+            write_binary(os, t.source_.index);
+            write_binary(os, t.source_.windows);
+        }
+
+        //-----------------------------------------------------
+    private:
+        target_name name_;
+        file_source source_;
+    };
+
+    using file_source = target::file_source;
+
+    const target& get_target(target_id id) const noexcept { return targets_[id]; }
+
+
     //-----------------------------------------------------
     using sketch  = typename sketcher::sketch_type;  //range of features
     using feature = typename sketch::value_type;
 
 
 private:
-    //use negative numbers for sequence level taxon ids
-    static constexpr taxon_id
-    taxon_id_of_target(target_id id) noexcept { return -taxon_id(id)-1; }
 
+    using target_store = std::vector<target>;
+
+    friend
+    void write_binary(std::ostream& os, const target_store& t) {
+        write_binary(os, t.size());
+        for (const target& tgt: t)
+            write_binary(os, tgt);
+    }
+
+    friend
+    void read_binary(std::istream& is, target_store& t) {
+        uint64_t n;
+        read_binary(is, n);
+        t.resize(n);
+        for (target& tgt: t)
+            read_binary(is, tgt);
+    }
 
     //-----------------------------------------------------
     /// @brief "heart of the database": maps features to target locations
@@ -200,7 +276,6 @@ private:
     };
 
     using sketch_batch = std::vector<window_sketch>;
-
 
 public:
     //---------------------------------------------------------------
@@ -275,7 +350,6 @@ public:
         maxLocsPerFeature_(max_supported_locations_per_feature()),
         features_{},
         targets_{},
-        taxa_{},
         name2tax_{},
         inserter_{}
     {
@@ -289,7 +363,6 @@ public:
         maxLocsPerFeature_(other.maxLocsPerFeature_),
         features_{std::move(other.features_)},
         targets_{std::move(other.targets_)},
-        taxa_{std::move(other.taxa_)},
         name2tax_{std::move(other.name2tax_)},
         inserter_{std::move(other.inserter_)}
     {}
@@ -365,9 +438,8 @@ public:
 
 
     //---------------------------------------------------------------
-    bool add_target(const sequence& seq, taxon_name sid,
+    bool add_target(const sequence& seq, target_name sid,
                     file_source source = file_source{});
-
 
 
     //---------------------------------------------------------------
@@ -384,11 +456,6 @@ public:
         return std::numeric_limits<window_id>::max();
     }
 
-    //-----------------------------------------------------
-    bool empty() const noexcept {
-        return features_.empty();
-    }
-
 
     //---------------------------------------------------------------
     void clear();
@@ -399,60 +466,32 @@ public:
     void clear_without_deallocation();
 
 
-    //---------------------------------------------------------------
-    static constexpr taxon_id no_taxon_id() noexcept {
-        return taxonomy::none_id();
-    }
+    static constexpr target_id nulltgt = std::numeric_limits<target_id>::max();
 
-
-    //---------------------------------------------------------------
-    const taxon*
-    taxon_with_id(taxon_id id) const noexcept {
-        return taxa_[id];
-    }
     //-----------------------------------------------------
     /**
      * @brief will only find sequence-level taxon names == sequence id
      */
-    const taxon*
-    taxon_with_name(const taxon_name& name) const noexcept {
-        if(name.empty()) return nullptr;
+    target_id
+    taxon_with_name(const target_name& name) const noexcept {
+        if(name.empty()) return nulltgt;
         auto i = name2tax_.find(name);
-        if(i == name2tax_.end()) return nullptr;
+        if(i == name2tax_.end()) return nulltgt;
         return i->second;
     }
     //-----------------------------------------------------
     /**
      * @brief will find sequence-level taxon names with different versions
      */
-    const taxon*
-    taxon_with_similar_name(const taxon_name& name) const noexcept {
-        if(name.empty()) return nullptr;
+    target_id
+    taxon_with_similar_name(const target_name& name) const noexcept {
+        if(name.empty()) return nulltgt;
         auto i = name2tax_.upper_bound(name);
-        if(i == name2tax_.end()) return nullptr;
+        if(i == name2tax_.end()) return nulltgt;
         const auto s = name.size();
-        if(0 != i->first.compare(0,s,name)) return nullptr;
+        if(0 != i->first.compare(0,s,name)) return nulltgt;
         return i->second;
     }
-
-
-    //---------------------------------------------------------------
-    std::uint64_t
-    non_target_taxon_count() const noexcept {
-        return taxa_.size() - targets_.size();
-    }
-    //-----------------------------------------------------
-    taxon_range taxa() const {
-        return taxa_.full_range();
-    }
-    taxon_range non_target_taxa() const {
-        return taxa_.subrange_from(1);
-    }
-    //-----------------------------------------------------
-    taxon_range target_taxa() const {
-        return taxa_.subrange_until(0);
-    }
-
 
     //---------------------------------------------------------------
     template<class InputIterator>
@@ -510,7 +549,6 @@ public:
      * @brief   write database to binary file
      */
     void write(const std::string& filename) const;
-
 
     //---------------------------------------------------------------
     std::uint64_t bucket_count() const noexcept {
@@ -640,14 +678,10 @@ private:
     sketcher querySketcher_;
     std::uint64_t maxLocsPerFeature_;
     feature_store features_;
-    std::vector<const taxon*> targets_;
-    taxonomy taxa_;
-    std::map<taxon_name,const taxon*> name2tax_;
-
+    target_store targets_;
+    std::map<target_name,target_id> name2tax_;
     std::unique_ptr<batch_executor<window_sketch>> inserter_;
 };
-
-
 
 
 /*************************************************************************//**
@@ -656,6 +690,7 @@ private:
  *
  *****************************************************************************/
 using match_locations = database::match_locations;
+using target = database::target;
 
 
 

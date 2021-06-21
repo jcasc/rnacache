@@ -25,6 +25,7 @@
 
 
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include <algorithm> // move, sort, lower_bound
 #include <iterator>  // make_move_iterator
@@ -120,7 +121,7 @@ public:
     {
         for(const auto& cand : candidates) {
 
-            if(cand.tax && cand.hits >= minHitsPerCandidate) {
+            if(cand.hits >= minHitsPerCandidate) {
 
                 auto tgt = cand.tgt;
 

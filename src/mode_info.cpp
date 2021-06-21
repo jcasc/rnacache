@@ -119,13 +119,14 @@ void show_feature_counts(const string& dbfile)
  * @brief
  *
  *****************************************************************************/
-void show_target_info(std::ostream& os, const database& db, const taxon& tax)
+void show_target_info(std::ostream& os, const database& db, target_id tgt)
 {
-    os  << "Target " << tax.name() << "):\n"
+    const auto& meta = db.get_target(tgt);
+    os  << "Target " << meta.name() << "):\n"
         << "    source:     "
-        << tax.source().filename << " / " << tax.source().index
-        << "\n    length:     " << tax.source().windows << " windows"
-        << "\n    (ID) Name:  " << "(" << tax.id() << ") " << tax.name()
+        << meta.source().filename << " / " << meta.source().index
+        << "\n    length:     " << meta.source().windows << " windows"
+        << "\n    (ID) Name:  " << "(" << tgt << ") " << meta.name()
         << '\n';
 }
 
@@ -142,9 +143,9 @@ void show_target_info(const info_options& opt)
 
     if(!opt.targetIds.empty()) {
         for(const auto& tid : opt.targetIds) {
-            const taxon* tax = db.taxon_with_name(tid);
-            if(tax) {
-                show_target_info(cout, db, *tax);
+            const auto tgt = db.taxon_with_name(tid);
+            if(tgt != database::nulltgt) {
+                show_target_info(cout, db, tgt);
             }
             else {
                 cout << "Target (reference sequence) '" << tid
@@ -154,8 +155,8 @@ void show_target_info(const info_options& opt)
     }
     else {
         cout << "Targets (reference sequences) in database:\n";
-        for(const auto& tax : db.target_taxa()) {
-            show_target_info(cout, db, tax);
+        for(target_id tgt = 0; tgt < db.target_count(); ++tgt) {
+            show_target_info(cout, db, tgt);
         }
     }
 }

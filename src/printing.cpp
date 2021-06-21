@@ -29,7 +29,6 @@
 #include "classification_statistics.h"
 #include "matches_per_target.h"
 #include "stat_confusion.h"
-#include "taxonomy.h"
 #include "options.h"
 
 #include "printing.h"
@@ -95,13 +94,13 @@ void show_taxon_header(std::ostream& os,
     const auto& fmt = opt.tokens;
 
     if(style.showName) {
-        os << prefix << "taxname";
+        os << prefix << "tgtname";
         if(style.showId) {
-            os << fmt.taxidPrefix << prefix << "taxid" << fmt.taxidSuffix;
+            os << fmt.taxidPrefix << prefix << "tgtid" << fmt.taxidSuffix;
         }
     }
     else if(style.showId) {
-        os << prefix << "taxid";
+        os << prefix << "tgtid";
     }
 }
 
@@ -110,7 +109,7 @@ void show_taxon_header(std::ostream& os,
 //-------------------------------------------------------------------
 void print_taxon(std::ostream& os,
                  const std::string& taxName,
-                 taxon_id id,
+                 target_id id,
                  taxon_print_style style,
                  const formatting_tokens& fmt)
 {
@@ -129,26 +128,29 @@ void print_taxon(std::ostream& os,
 
 //-------------------------------------------------------------------
 void show_taxon(std::ostream& os,
+                const database& db,
                 const classification_output_formatting& opt,
-                const taxon* tax)
+                target_id tgt)
 {
-    if(!tax) 
-        print_taxon(os, opt.tokens.none, taxonomy::none_id(), opt.taxonStyle, opt.tokens);
-    else 
-        print_taxon(os, tax->name(), tax->id(), opt.taxonStyle, opt.tokens);
+    if(tgt == database::nulltgt) 
+        print_taxon(os, opt.tokens.none, database::nulltgt, opt.taxonStyle, opt.tokens);
+    else  {
+        print_taxon(os, db.get_target(tgt).name(), tgt, opt.taxonStyle, opt.tokens);
+    }
 }
 
 
 
 //-------------------------------------------------------------------
 void show_candidates(std::ostream& os,
-                     const classification_candidates& cand)
+                     const database& db,
+                     const classification_candidates& cands)
 {
     using size_t = classification_candidates::size_type;
 
-    for(size_t i = 0; i < cand.size() && cand[i].hits > 0; ++i) {
+    for(size_t i = 0; i < cands.size(); ++i) {
         if(i > 0) os << ',';
-        if(cand[i].tax) os << cand[i].tax->name() << ':' << cand[i].hits;
+        os << db.get_target(cands[i].tgt).name() << ':' << cands[i].hits;
     }
 
 }
@@ -169,18 +171,18 @@ void show_matches(std::ostream& os,
         if(*cur == *it)
             ++count;
         else {
-            const taxon* tax = db.taxon_of_target(cur->tgt);
-            if(tax) os << tax->name()
-                        << '/' << int(cur->win)
-                        << ':' << count << ',';
+            const auto tgt = db.get_target(cur->tgt);
+            os << tgt.name()
+               << '/' << int(cur->win)
+               << ':' << count << ',';
             cur = it;
             count = 1;
         }
     }
-    const taxon* tax = db.taxon_of_target(cur->tgt);
-    if(tax) os << tax->name()
-                << '/' << int(cur->win)
-                << ':' << count << ',';
+    const auto tgt = db.get_target(cur->tgt);
+    os << tgt.name()
+       << '/' << int(cur->win)
+       << ':' << count << ',';
 }
 
 template void show_matches<match_locations>(

@@ -36,43 +36,25 @@
 #include "alignment.h"
 #include "sequence_view.h"
 #include "timer.h"
-
-// SEE NOTES
 #include "querying.h"
-// !!!!!
-
 
 namespace mc {
-
-
-/// @brief forward declarations
-// struct classification_options;
-// struct classification_output_options;
-// struct evaluation_options;
-// struct query_options;
-
-
-/// @brief typedefs
-using taxon_list         = std::vector<const taxon*>;
-using query_matches      = std::vector<taxon_list>;
-
 
 
 
 /*************************************************************************//**
  *
- * @brief classification candidates + derived best classification
+ * @brief candidates + groundTruth
  *
  *****************************************************************************/
 struct classification
 {
     classification(classification_candidates cand):
-        candidates{std::move(cand)}, best{nullptr}, groundTruth{nullptr}
+        candidates{std::move(cand)}, groundTruth{database::nulltgt}
     {}
 
     classification_candidates candidates;
-    const taxon* best;
-    const taxon* groundTruth;
+    target_id groundTruth;
 };
 
 
@@ -116,7 +98,7 @@ struct classification_results
  *        (needed for precision tests)
  *
  *****************************************************************************/
-const taxon*
+target_id
 ground_truth_taxon(const database&, const std::string& header);
 
 

@@ -697,3 +697,214 @@ void map_queries_to_targets_rna_search_2pass(
     }
     std::cout << std::endl;
 }
+
+// parameter search !
+//
+// they don't call it high *readability* computing
+//
+// from classify_rna.cpp
+void map_queries_to_targets_rna_search_2pass(
+    const vector<string>& infiles,
+    const database& db, const query_options& opt)
+{    
+    struct eval_result {
+        // parameters
+        size_t hit_thresh = 0;
+        double cutoff = 0;
+        double cov_stat = 0;
+        bool cov_maxnorm = false;
+
+        // results
+        size_t reads_total = 0;
+
+        size_t matches_total = 0; 
+        size_t reads_aligned = 0;
+        size_t origin_mapped = 0;
+        size_t correctly_rejected = 0;
+    };  
+    struct cmp {
+        bool operator() (const eval_result& lhs, const eval_result& rhs) const noexcept{
+            if (lhs.matches_total == rhs.matches_total)
+                return lhs.origin_mapped > rhs.origin_mapped;
+            else
+                return lhs.matches_total < rhs.matches_total;
+        }
+    };
+    std::multiset<eval_result, cmp> global_results;
+    std::atomic<size_t> query_counter{0};
+    matches_per_target_param pcoverage_;
+
+    std::vector<std::pair<uint16_t, double>> settings;
+    
+    for (int rel = 0; rel <=100; rel+=1)
+        for (int abs = 1; abs <=64; abs*=2)
+            settings.emplace_back(abs, double(rel)/100);
+    // settings.emplace_back(opt.classify.hitsMin, opt.classify.hitsCutoff);
+
+    
+    constexpr size_t N = 100;
+
+    std::unordered_map<size_t, std::atomic<size_t>> total_matches, origin_mapped, aligned, correctly_rejected;
+    std::unordered_map<size_t, std::atomic<size_t>> total_matches_maxnorm, origin_mapped_maxnorm, aligned_maxnorm, correctly_rejected_maxnorm;
+    for (size_t i = 0; i < settings.size()*(N+1); ++i) {
+        total_matches_maxnorm.emplace(i,0);
+        origin_mapped_maxnorm.emplace(i,0);
+
+        total_matches.emplace(i,0);
+        origin_mapped.emplace(i,0);
+        aligned.emplace(i,0);
+        correctly_rejected.emplace(i,0);
+    }
+
+    for (size_t i = 0; i < settings.size(); ++i) { 
+        correctly_rejected_maxnorm.emplace(i,0);
+        aligned_maxnorm.emplace(i,0);
+    }
+
+
+
+    std::vector<std::unordered_map<const taxon*, std::atomic<double>>> cov_cache;
+    for (size_t i = 0; i < settings.size(); ++i) {
+        cov_cache.emplace_back();
+        for (const taxon& tax: db.target_taxa())
+            cov_cache.back().emplace(&tax, -1.0);
+    }
+
+    const auto makeBatchBuffer = [] { return mappings_buffer(); };
+
+    const auto processCoverage = [&] (mappings_buffer& buf,
+        const sequence_query& query, const auto& allhits)
+    {
+        if(query.empty()) return;
+        ++query_counter;
+
+        buf.pcoverage.insert(allhits, make_classification_candidates(db, opt.classify, query, allhits), opt.classify.covFill);
+    };
+
+    //runs before a batch buffer is discarded
+    const auto finalizeCoverage = [&] (mappings_buffer&& buf) {
+        pcoverage_.merge(std::move(buf.pcoverage));
+        std::cerr << query_counter << std::endl;
+    };
+
+    //runs if something needs to be appended to the output
+    const auto appendToOutput = [&] (const std::string&) {
+    };
+
+    std::cerr << "STARTING FIRST PASS" << std::endl;
+    //run (parallel) database queries according to processing options
+    query_database(infiles, db, opt.pairing, opt.performance,
+                   makeBatchBuffer, processCoverage, finalizeCoverage,
+                   appendToOutput);
+    
+    
+    query_counter = 0;
+
+    const auto processQuery = [&] (mappings_buffer&,
+        const sequence_query& query, const auto& allhits)
+    {
+        if(query.empty()) return;
+        ++query_counter;
+                
+        classification cls { make_classification_candidates(db, opt.classify, query, allhits) } ;
+        cls.groundTruth = ground_truth_taxon(db, query.header);
+
+        for (size_t queue_ = 0; queue_ < settings.size(); ++queue_) {
+            
+            uint16_t abs = settings[queue_].first;
+            double rel = settings[queue_].second;
+
+            auto cands = cls.candidates;
+            auto filter_ops = opt.classify;
+            filter_ops.hitsMin = abs;
+            filter_ops.hitsCutoff = rel;
+            hits_cutoff_filter(filter_ops, cands);
+
+            size_t idx = (N+1) * queue_;
+            
+            if (cands.empty()) {
+                if (cls.groundTruth == nullptr) {
+                    correctly_rejected_maxnorm[queue_]++;
+                    correctly_rejected[idx]++;
+                }
+                continue;
+            }
+            
+            uint_least64_t max_hits = 0;
+            for (const auto& cand: cands) max_hits = std::max(cand.hits, max_hits);
+
+            double max_cov = 0;
+            for (const auto& cand: cands) {
+                if (cov_cache[queue_][cand.tax] == -1.0)
+                    cov_cache[queue_][cand.tax] = double(pcoverage_.num_hits(cand.tgt, abs, rel))/cand.tax->source().windows;
+                max_cov = std::max(max_cov, cov_cache[queue_][cand.tax].load());
+            }
+
+            for (const auto& cand: cands) {
+                
+                double cov_stat = cov_cache[queue_][cand.tax]/max_cov;
+
+                total_matches_maxnorm[idx+N* cov_stat]++;
+                total_matches[idx+N* cov_cache[queue_][cand.tax]]++; 
+
+                if (cls.groundTruth == cand.tax) {
+                    origin_mapped_maxnorm[idx+N* cov_stat]++;
+                    origin_mapped[idx+N* cov_cache[queue_][cand.tax]]++;
+                }
+            }
+            
+            aligned_maxnorm[queue_]++;
+            aligned[idx+N* max_cov]++;
+
+            if (cls.groundTruth == nullptr) {
+                size_t reject_idx = idx+N*max_cov +1;
+                if (reject_idx <= idx+N)
+                    correctly_rejected[reject_idx]++;
+            }
+        }
+    };
+
+    //runs before a batch buffer is discarded
+    const auto finalizeBatch = [&] (mappings_buffer&&) {
+        std::cerr << query_counter << std::endl;
+    };
+
+    query_database(infiles, db, opt.pairing, opt.performance,
+                   makeBatchBuffer, processQuery, finalizeBatch,
+                   appendToOutput);
+
+    // prefix_sums
+
+    do_in_parallel(opt.performance.numThreads, settings.size(), [&](size_t q) {
+        size_t idx = (N+1) * q;
+        for (size_t i = N-1; i < N; --i) {
+            total_matches_maxnorm.at(idx+ i) += total_matches_maxnorm.at(idx+ i+1);
+            origin_mapped_maxnorm[idx+ i] += origin_mapped_maxnorm[idx+ i+1];
+
+            total_matches[idx+ i] += total_matches[idx+ i+1];
+            origin_mapped[idx+ i] += origin_mapped[idx+ i+1];
+            aligned[idx+ i] += aligned[idx+ i+1];
+            correctly_rejected[idx+ N-i] += correctly_rejected[idx+ N-i-1];
+        }
+    });
+
+    for (size_t q = 0; q < settings.size(); ++q) {
+        size_t idx = (N+1) * q;
+        for (size_t i = 0; i <= N; ++i) {
+            // filter here if neccessary
+
+            uint16_t abs = settings[q].first;
+            double rel = settings[q].second;
+            global_results.insert({abs, rel, double(i)/N, true, query_counter, total_matches_maxnorm[idx+ i], aligned_maxnorm[q], origin_mapped_maxnorm[idx+ i], correctly_rejected_maxnorm[q]});
+            global_results.insert({abs, rel, double(i)/N, false, query_counter, total_matches[idx+ i], aligned[idx+ i], origin_mapped[idx+ i], correctly_rejected[idx+ i]});
+        }
+    }
+
+    std::cerr << global_results.size() << " results" << std::endl;
+    std::cout << "hit_threshold,hit_cutoff,relative_coverage,reads,matches,aligned,TP,TN" << std::endl;
+    for (const auto& i: global_results) {
+        std::cout << i.hit_thresh << "," << i.cutoff << "," << i.cov_stat << "," << i.cov_maxnorm << ","
+                << i.reads_total << "," << i.matches_total << "," << i.reads_aligned << "," << i.origin_mapped << "," << i.correctly_rejected << std::endl;
+    }
+    std::cout << std::endl;
+}

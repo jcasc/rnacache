@@ -110,7 +110,7 @@ void for_each_eligible_mapping(const classification_options& opt,
     }
 
     for(const auto& cand: cands) {
-        if(cand.tax && cand.hits >= opt.hitsMin
+        if(cand.hits >= opt.hitsMin
             && double(cand.hits)/maxHits >= opt.hitsCutoff)
         {
             action(cand);
@@ -153,7 +153,7 @@ void hits_cutoff_filter(const classification_options& opt,
         std::remove_if(cands.begin(), cands.end(),
             [&](match_candidate& cand) {
                 // I don't remember why I checked for nullptr in for_each_eligible, but I'll do it to be safe.
-                return !(cand.tax && cand.hits >= opt.hitsMin && double(cand.hits)/maxHits >= opt.hitsCutoff);
+                return !(cand.hits >= opt.hitsMin && double(cand.hits)/maxHits >= opt.hitsCutoff);
             }),
     cands.end());
 }
@@ -164,7 +164,8 @@ void hits_cutoff_filter(const classification_options& opt,
  * @brief applies coverage filter to a list of taxa
  *
  *****************************************************************************/
-void coverage_filter(const classification_options& opt,
+void coverage_filter(const database& db,
+                     const classification_options& opt,
                      classification_candidates& cands,
                      const matches_per_target_light& mpt)
 {
@@ -177,7 +178,7 @@ void coverage_filter(const classification_options& opt,
         case coverage_norm::max:
             for(const auto& cand: cands) {
                 double cov = double(mpt.num_hits(cand.tgt))
-                             / cand.tax->source().windows;
+                             / db.get_target(cand.tgt).source().windows;
                 norm = std::max(norm, cov);
             }
             if(std::abs(norm) <= std::numeric_limits<double>::min()) return;
@@ -189,7 +190,7 @@ void coverage_filter(const classification_options& opt,
         std::remove_if(cands.begin(), cands.end(),
         [&](match_candidate& cand) {
             double cov = double(mpt.num_hits(cand.tgt))
-                         / cand.tax->source().windows;
+                         / db.get_target(cand.tgt).source().windows;
             return cov * norm < opt.covMin;
         }), cands.end());
 }
@@ -215,7 +216,7 @@ classify(const database& db,
 
     hits_cutoff_filter(opt, cls.candidates);
 
-    coverage_filter(opt, cls.candidates, cov);
+    coverage_filter(db, opt, cls.candidates, cov);
 
     return cls;
 }
@@ -243,7 +244,7 @@ void evaluate_classification(
                 return statistics.mapped_noise();
         } else
             for (const auto& cand: cls.candidates)
-                if (cand.tax == cls.groundTruth)
+                if (cand.tgt == cls.groundTruth)
                     return statistics.mapped_correct(cls.candidates.size());
         statistics.mapped(cls.candidates.size());
     } else {
@@ -331,32 +332,29 @@ struct alignment_targets {
     }
 
     void load(const database& db) {
-        using indexed_taxons = std::unordered_map<size_t, const taxon *>;
+        using indexed_taxons = std::unordered_map<size_t, target_id>;
         using catalogue = std::pair<std::unique_ptr<sequence_reader>, indexed_taxons>;
         
         std::unordered_map<std::string, catalogue> catalogues;
 
-        for (const auto& tax: db.target_taxa()) {
-            const auto& src = tax.source();
+        for (target_id tgt = 0; tgt < db.target_count(); ++tgt) {
+            const auto& src = db.get_target(tgt).source();
             if (!catalogues.count(src.filename))
                 catalogues.emplace(src.filename, catalogue{make_sequence_reader(src.filename), indexed_taxons()});
-            catalogues[src.filename].second.emplace(src.index, &tax);
-            // std::cerr << "#!@ "<<src.index << " " << &tax << std::endl;
+            catalogues[src.filename].second.emplace(src.index, tgt);
         }
 
-        for (const auto& i: catalogues) {
-            const auto& cat = i.second;
-            const auto& reader = cat.first;
-            const auto& taxons = cat.second;
+        targets_.resize(db.target_count());
+        for (auto& i: catalogues) {
+            auto& cat = i.second;
+            auto& reader = cat.first;
+            auto& taxons = cat.second;
             while (reader->has_next()) {
                 auto idx = reader->index();
                 if(taxons.count(idx)) {
                     auto seq = reader->next();
-                    // std::cerr << "2#!@ " << idx << " " << taxons.at(idx) << std::endl;
-                    tax_to_refid_.emplace(taxons.at(idx), targets_.size());
-                    targets_.push_back({std::move(seq.header), std::move(seq.data)});
+                    targets_[taxons[idx]] = {std::move(seq.header), std::move(seq.data)};
                 } else {
-                    // std::cerr << "SKIPPEDI " << idx << std::endl;
                     reader->skip(1);
                 }
             }
@@ -364,12 +362,8 @@ struct alignment_targets {
         // debug();
     }
 
-    const target& operator()(const taxon* tax) const {
-        return targets_.at(tax_to_refid_.at(tax));
-    }
-
-    uint32_t id(const taxon* tax) const {
-        return tax_to_refid_.at(tax);
+    const target& operator[](target_id tgt) const {
+        return targets_[tgt];
     }
 
     auto begin() const {return targets_.cbegin();};
@@ -393,7 +387,6 @@ struct alignment_targets {
     }
 
 private:
-    std::unordered_map<const taxon*, uint32_t> tax_to_refid_;
     std::vector<target> targets_;
 };
 
@@ -406,10 +399,10 @@ struct edlib_alignment {
 
     enum struct status {FORWARD, REVERSE, UNMAPPED};
 
-    edlib_alignment(const std::string& query, const taxon* tax, const alignment_targets& refs, int max_edit_distance):
-        tax_(tax), status_(status::UNMAPPED), cigar_(nullptr)
+    edlib_alignment(const std::string& query, target_id tgt, const alignment_targets& refs, int max_edit_distance):
+        tgt_(tgt), status_(status::UNMAPPED), cigar_(nullptr)
     {
-        const std::string& target = refs(tax).seq;
+        const std::string& target = refs[tgt].seq;
 
         auto edlib_config = edlibNewAlignConfig(max_edit_distance, EDLIB_MODE_HW, EDLIB_TASK_PATH, additionalEqualities.data(), additionalEqualities.size());
         
@@ -449,7 +442,7 @@ struct edlib_alignment {
     edlib_alignment& operator=(const edlib_alignment&) = delete;
     
     edlib_alignment(edlib_alignment&& other):
-        tax_(other.tax_), status_(other.status_), score_(other.score_), start_(other.start_), end_(other.end_), cigar_(other.cigar_)
+        tgt_(other.tgt_), status_(other.status_), score_(other.score_), start_(other.start_), end_(other.end_), cigar_(other.cigar_)
     {
         other.cigar_ = nullptr;
     }
@@ -459,7 +452,7 @@ struct edlib_alignment {
     bool mapped() const noexcept {return status_!=status::UNMAPPED;}
     int score() const noexcept {return score_;}
     status orientation() const noexcept {return status_;}
-    const taxon * tax() const noexcept {return tax_;}
+    target_id tgt() const noexcept {return tgt_;}
     int start() const noexcept {return start_;}
     int end() const noexcept {return end_;}
     const char * cigar() const noexcept {return cigar_;}
@@ -467,7 +460,7 @@ struct edlib_alignment {
 
 private:
     static std::vector<EdlibEqualityPair> additionalEqualities;
-    const taxon* tax_;
+    target_id tgt_;
     status status_;
     int score_;
     int start_, end_;
@@ -477,9 +470,9 @@ private:
 std::vector<EdlibEqualityPair> edlib_alignment::additionalEqualities({{'a', 'A'}, {'t', 'T'}, {'c', 'C'}, {'g', 'G'}});
 
 struct edlib_alignment_pair {
-    edlib_alignment_pair(const sequence_query& query, const taxon* tax, const alignment_targets& refs, int max_edit_distance):
-        first(query.seq1, tax, refs, max_edit_distance),
-        second(query.seq2, tax, refs, max_edit_distance)
+    edlib_alignment_pair(const sequence_query& query, target_id tgt, const alignment_targets& refs, int max_edit_distance):
+        first(query.seq1, tgt, refs, max_edit_distance),
+        second(query.seq2, tgt, refs, max_edit_distance)
     {}
 
     int score() const {
@@ -544,7 +537,7 @@ void show_sam_alignment(std::ostream& os,
     os << flag1 << '\t';
 
     // RNAME
-    os << (alignment.first.mapped() ? refs(alignment.first.tax()).header : refs(alignment.second.tax()).header)  << '\t';
+    os << (alignment.first.mapped() ? refs[alignment.first.tgt()].header : refs[alignment.second.tgt()].header)  << '\t';
 
     // POS
     os << (alignment.first.mapped() ? alignment.first.start() : alignment.second.start()) + 1  << '\t';
@@ -582,7 +575,7 @@ void show_sam_alignment(std::ostream& os,
     os << flag2 << '\t';
 
     // RNAME
-    os << (alignment.second.mapped() ? refs(alignment.second.tax()).header : refs(alignment.first.tax()).header)  << '\t';
+    os << (alignment.second.mapped() ? refs[alignment.second.tgt()].header : refs[alignment.first.tgt()].header)  << '\t';
 
     // POS
     os << (alignment.second.mapped() ? alignment.second.start() : alignment.first.start()) + 1  << '\t';
@@ -611,14 +604,14 @@ void show_sam_alignment(std::ostream& os,
     os << '\n';
 }
 
-void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const sequence_query& query, const taxon* tax, bool primary) {
+void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const sequence_query& query, target_id tgt, bool primary) {
 
     // function only applicable for mapped reads
 
     std::string qname = query.header.substr(0, query.header.size() - 2);
-    size_t tgt = refs(tax).seq.size();
-    size_t read = query.seq1.size();
-    size_t tlen = std::min(tgt, read);
+    size_t tgtlen = refs[tgt].seq.size();
+    size_t readlen = query.seq1.size();
+    size_t tlen = std::min(tgtlen, readlen);
 
     uint16_t flag1 = 0, flag2 = 0;
     
@@ -650,7 +643,7 @@ void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const seq
     os << flag1 << '\t';
 
     // RNAME
-    os << refs(tax).header << '\t';
+    os << refs[tgt].header << '\t';
 
     // POS
     os << 1 << '\t';
@@ -659,10 +652,10 @@ void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const seq
     os << 255 << '\t';
 
     // CIGAR
-    if (tgt < read) {
-        os << tgt << "M" << (read-tgt) << "I\t";
+    if (tgtlen < readlen) {
+        os << tgtlen << "M" << (readlen-tgtlen) << "I\t";
     } else {
-        os << read << "M" << "\t";
+        os << readlen << "M" << "\t";
     }
 
     // RNEXT
@@ -692,7 +685,7 @@ void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const seq
     os << flag2 << '\t';
 
     // RNAME
-    os << refs(tax).header << '\t';
+    os << refs[tgt].header << '\t';
 
     // POS
     os << 1  << '\t';
@@ -701,10 +694,10 @@ void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const seq
     os << 255 << '\t';
 
     // CIGAR
-    if (tgt < read) {
-        os << tgt << "M" << (read-tgt) << "I\t";
+    if (tgtlen < readlen) {
+        os << tgtlen << "M" << (readlen-tgtlen) << "I\t";
     } else {
-        os << read << "M" << "\t";
+        os << readlen << "M" << "\t";
     }
 
     // RNEXT
@@ -780,11 +773,8 @@ void show_sam(std::ostream& os,
         std::vector<edlib_alignment_pair> alignments;
         size_t primary = 0;
         for (const auto& cand: cands) {
-            // still neccessary??? //TODO: check
-            if(!cand.tax)
-                continue;
-                
-            alignments.emplace_back(query, cand.tax, refs, opt.classify.maxEditDist);
+
+            alignments.emplace_back(query, cand.tgt, refs, opt.classify.maxEditDist);
             if (alignments[primary].score() < alignments.back().score())
                 primary = alignments.size()-1;
         }
@@ -805,17 +795,15 @@ void show_sam(std::ostream& os,
         size_t max_cand = 0;
         for (size_t i = 0; i < cands.size(); ++i) {
             const auto& cand = cands[i];
-            if(!cand.tax)
-                continue;
+
             if (cand.hits > cands[max_cand].hits) {
                 max_cand = i;
             }
         }
         for (size_t i = 0; i < cands.size(); ++i) {
             const auto& cand = cands[i];
-            if(!cand.tax)
-                continue;
-            show_sam_minimal(os, refs, query, cand.tax, i == max_cand);
+
+            show_sam_minimal(os, refs, query, cand.tgt, i == max_cand);
         }
     }
 }
@@ -985,219 +973,6 @@ void map_queries_to_targets_2pass(
     #endif
 }
 
-
-#ifndef RC_BAM
-// parameter search !
-//
-// they don't call it high *readability* computing
-//
-void map_queries_to_targets_rna_search_2pass(
-    const vector<string>& infiles,
-    const database& db, const query_options& opt)
-{    
-    struct eval_result {
-        // parameters
-        size_t hit_thresh = 0;
-        double cutoff = 0;
-        double cov_stat = 0;
-        bool cov_maxnorm = false;
-
-        // results
-        size_t reads_total = 0;
-
-        size_t matches_total = 0; 
-        size_t reads_aligned = 0;
-        size_t origin_mapped = 0;
-        size_t correctly_rejected = 0;
-    };  
-    struct cmp {
-        bool operator() (const eval_result& lhs, const eval_result& rhs) const noexcept{
-            if (lhs.matches_total == rhs.matches_total)
-                return lhs.origin_mapped > rhs.origin_mapped;
-            else
-                return lhs.matches_total < rhs.matches_total;
-        }
-    };
-    std::multiset<eval_result, cmp> global_results;
-    std::atomic<size_t> query_counter{0};
-    matches_per_target_param pcoverage_;
-
-    std::vector<std::pair<uint16_t, double>> settings;
-    
-    for (int rel = 0; rel <=100; rel+=1)
-        for (int abs = 1; abs <=64; abs*=2)
-            settings.emplace_back(abs, double(rel)/100);
-    // settings.emplace_back(opt.classify.hitsMin, opt.classify.hitsCutoff);
-
-    
-    constexpr size_t N = 100;
-
-    std::unordered_map<size_t, std::atomic<size_t>> total_matches, origin_mapped, aligned, correctly_rejected;
-    std::unordered_map<size_t, std::atomic<size_t>> total_matches_maxnorm, origin_mapped_maxnorm, aligned_maxnorm, correctly_rejected_maxnorm;
-    for (size_t i = 0; i < settings.size()*(N+1); ++i) {
-        total_matches_maxnorm.emplace(i,0);
-        origin_mapped_maxnorm.emplace(i,0);
-
-        total_matches.emplace(i,0);
-        origin_mapped.emplace(i,0);
-        aligned.emplace(i,0);
-        correctly_rejected.emplace(i,0);
-    }
-
-    for (size_t i = 0; i < settings.size(); ++i) { 
-        correctly_rejected_maxnorm.emplace(i,0);
-        aligned_maxnorm.emplace(i,0);
-    }
-
-
-
-    std::vector<std::unordered_map<const taxon*, std::atomic<double>>> cov_cache;
-    for (size_t i = 0; i < settings.size(); ++i) {
-        cov_cache.emplace_back();
-        for (const taxon& tax: db.target_taxa())
-            cov_cache.back().emplace(&tax, -1.0);
-    }
-
-    const auto makeBatchBuffer = [] { return mappings_buffer(); };
-
-    const auto processCoverage = [&] (mappings_buffer& buf,
-        const sequence_query& query, const auto& allhits)
-    {
-        if(query.empty()) return;
-        ++query_counter;
-
-        buf.pcoverage.insert(allhits, make_classification_candidates(db, opt.classify, query, allhits), opt.classify.covFill);
-    };
-
-    //runs before a batch buffer is discarded
-    const auto finalizeCoverage = [&] (mappings_buffer&& buf) {
-        pcoverage_.merge(std::move(buf.pcoverage));
-        std::cerr << query_counter << std::endl;
-    };
-
-    //runs if something needs to be appended to the output
-    const auto appendToOutput = [&] (const std::string&) {
-    };
-
-    std::cerr << "STARTING FIRST PASS" << std::endl;
-    //run (parallel) database queries according to processing options
-    query_database(infiles, db, opt.pairing, opt.performance,
-                   makeBatchBuffer, processCoverage, finalizeCoverage,
-                   appendToOutput);
-    
-    
-    query_counter = 0;
-
-    const auto processQuery = [&] (mappings_buffer&,
-        const sequence_query& query, const auto& allhits)
-    {
-        if(query.empty()) return;
-        ++query_counter;
-                
-        classification cls { make_classification_candidates(db, opt.classify, query, allhits) } ;
-        cls.groundTruth = ground_truth_taxon(db, query.header);
-
-        for (size_t queue_ = 0; queue_ < settings.size(); ++queue_) {
-            
-            uint16_t abs = settings[queue_].first;
-            double rel = settings[queue_].second;
-
-            auto cands = cls.candidates;
-            auto filter_ops = opt.classify;
-            filter_ops.hitsMin = abs;
-            filter_ops.hitsCutoff = rel;
-            hits_cutoff_filter(filter_ops, cands);
-
-            size_t idx = (N+1) * queue_;
-            
-            if (cands.empty()) {
-                if (cls.groundTruth == nullptr) {
-                    correctly_rejected_maxnorm[queue_]++;
-                    correctly_rejected[idx]++;
-                }
-                continue;
-            }
-            
-            uint_least64_t max_hits = 0;
-            for (const auto& cand: cands) max_hits = std::max(cand.hits, max_hits);
-
-            double max_cov = 0;
-            for (const auto& cand: cands) {
-                if (cov_cache[queue_][cand.tax] == -1.0)
-                    cov_cache[queue_][cand.tax] = double(pcoverage_.num_hits(cand.tgt, abs, rel))/cand.tax->source().windows;
-                max_cov = std::max(max_cov, cov_cache[queue_][cand.tax].load());
-            }
-
-            for (const auto& cand: cands) {
-                
-                double cov_stat = cov_cache[queue_][cand.tax]/max_cov;
-
-                total_matches_maxnorm[idx+N* cov_stat]++;
-                total_matches[idx+N* cov_cache[queue_][cand.tax]]++; 
-
-                if (cls.groundTruth == cand.tax) {
-                    origin_mapped_maxnorm[idx+N* cov_stat]++;
-                    origin_mapped[idx+N* cov_cache[queue_][cand.tax]]++;
-                }
-            }
-            
-            aligned_maxnorm[queue_]++;
-            aligned[idx+N* max_cov]++;
-
-            if (cls.groundTruth == nullptr) {
-                size_t reject_idx = idx+N*max_cov +1;
-                if (reject_idx <= idx+N)
-                    correctly_rejected[reject_idx]++;
-            }
-        }
-    };
-
-    //runs before a batch buffer is discarded
-    const auto finalizeBatch = [&] (mappings_buffer&&) {
-        std::cerr << query_counter << std::endl;
-    };
-
-    query_database(infiles, db, opt.pairing, opt.performance,
-                   makeBatchBuffer, processQuery, finalizeBatch,
-                   appendToOutput);
-
-    // prefix_sums
-
-    do_in_parallel(opt.performance.numThreads, settings.size(), [&](size_t q) {
-        size_t idx = (N+1) * q;
-        for (size_t i = N-1; i < N; --i) {
-            total_matches_maxnorm.at(idx+ i) += total_matches_maxnorm.at(idx+ i+1);
-            origin_mapped_maxnorm[idx+ i] += origin_mapped_maxnorm[idx+ i+1];
-
-            total_matches[idx+ i] += total_matches[idx+ i+1];
-            origin_mapped[idx+ i] += origin_mapped[idx+ i+1];
-            aligned[idx+ i] += aligned[idx+ i+1];
-            correctly_rejected[idx+ N-i] += correctly_rejected[idx+ N-i-1];
-        }
-    });
-
-    for (size_t q = 0; q < settings.size(); ++q) {
-        size_t idx = (N+1) * q;
-        for (size_t i = 0; i <= N; ++i) {
-            // filter here if neccessary
-
-            uint16_t abs = settings[q].first;
-            double rel = settings[q].second;
-            global_results.insert({abs, rel, double(i)/N, true, query_counter, total_matches_maxnorm[idx+ i], aligned_maxnorm[q], origin_mapped_maxnorm[idx+ i], correctly_rejected_maxnorm[q]});
-            global_results.insert({abs, rel, double(i)/N, false, query_counter, total_matches[idx+ i], aligned[idx+ i], origin_mapped[idx+ i], correctly_rejected[idx+ i]});
-        }
-    }
-
-    std::cerr << global_results.size() << " results" << std::endl;
-    std::cout << "hit_threshold,hit_cutoff,relative_coverage,reads,matches,aligned,TP,TN" << std::endl;
-    for (const auto& i: global_results) {
-        std::cout << i.hit_thresh << "," << i.cutoff << "," << i.cov_stat << "," << i.cov_maxnorm << ","
-                << i.reads_total << "," << i.matches_total << "," << i.reads_aligned << "," << i.origin_mapped << "," << i.correctly_rejected << std::endl;
-    }
-    std::cout << std::endl;
-}
-#endif
-
 /*************************************************************************//**
  *
  * @brief transcriptome classification scheme
@@ -1214,9 +989,7 @@ void map_queries_to_targets(const vector<string>& infiles,
     std::cerr << opt.classify.hitsMin << " " << opt.classify.hitsCutoff << " " << opt.classify.covMin << " [" << (opt.classify.covNorm==coverage_norm::max?"NORM":"NO NORM") << "]" << std::endl;
     
     if(opt.rnaMode == rna_mode::search) {
-        #ifndef RC_BAM
-        map_queries_to_targets_rna_search_2pass(infiles, db, opt);
-        #endif
+        // pass
     } else {
         if(opt.output.format.mapViewMode != map_view_mode::none)
             show_query_mapping_header(results.perReadOut, opt.output);

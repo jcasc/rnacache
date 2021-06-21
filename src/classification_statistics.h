@@ -24,7 +24,6 @@
 
 #include <atomic>
 
-#include "taxonomy.h"
 #include "stat_confusion.h"
 
 

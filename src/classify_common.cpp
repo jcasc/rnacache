@@ -87,7 +87,7 @@ make_classification_candidates(const database& db,
 
     rules.maxCandidates = opt.maxNumCandidatesPerQuery;
 
-    return classification_candidates{db, allhits, rules};
+    return classification_candidates{allhits, rules};
 
 }
 
@@ -99,25 +99,25 @@ make_classification_candidates<match_locations>(const database& db,
 
 
 //-----------------------------------------------------------------------------
-const taxon*
+target_id
 ground_truth_taxon(const database& db, const string& header)
 {
     //try to extract query id and find the corresponding target in database
-    const taxon* tax = nullptr;
-    tax = db.taxon_with_name(extract_accession_string(header, sequence_id_type::acc_ver));
-    if(tax) return tax;
+    target_id tgt = database::nulltgt;
+    tgt = db.taxon_with_name(extract_accession_string(header, sequence_id_type::acc_ver));
+    if(tgt) return tgt;
 
-    tax = db.taxon_with_similar_name(extract_accession_string(header, sequence_id_type::acc));
-    if(tax) return tax;
+    tgt = db.taxon_with_similar_name(extract_accession_string(header, sequence_id_type::acc));
+    if(tgt) return tgt;
 
     //try to extract id from header
-    tax = db.taxon_with_id(extract_taxon_id(header));
-    if(tax) return tax;
+    tgt = extract_taxon_id(header);
+    if(tgt) return tgt;
 
     //try to find entire header as sequence identifier
-    tax = db.taxon_with_name(header);
+    tgt = db.taxon_with_name(header);
 
-    return tax;
+    return tgt;
 }
 
 
@@ -161,7 +161,7 @@ void show_query_mapping(
     os << colsep;
 
     if(opt.evaluate.showGroundTruth) {
-        show_taxon(os, opt.format, cls.groundTruth);
+        show_taxon(os, db, opt.format, cls.groundTruth);
         os << colsep;
     }
 
@@ -172,7 +172,7 @@ void show_query_mapping(
     
     if(opt.analysis.showTopHits)
     {
-        show_candidates(os, cls.candidates);
+        show_candidates(os, db, cls.candidates);
         os << colsep;
     }
     if(opt.analysis.showLocations) {

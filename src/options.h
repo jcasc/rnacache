@@ -34,7 +34,6 @@
 #include <vector>
 
 #include "config.h"
-#include "taxonomy.h"
 #include "cmdline_utility.h"
 #include "sequence_io.h"
 #include "io_options.h"

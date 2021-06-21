@@ -97,7 +97,6 @@ HEADERS = \
           src/stat_confusion.h \
           src/stat_moments.h \
           src/string_utils.h \
-          src/taxonomy.h \
           src/timer.h \
           src/version.h \
           dep/edlib.h

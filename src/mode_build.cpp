@@ -56,53 +56,6 @@ using std::endl;
 
 
 
-/*************************************************************************//**
- *
- * @return all target taxa
- *
- *****************************************************************************/
-std::set<const taxon*>
-all_targets(const database& db)
-{
-    auto res = std::set<const taxon*>{};
-
-    for(const auto& tax : db.target_taxa()) {
-        res.insert(&tax);
-    }
-
-    return res;
-}
-
-
-
-/*************************************************************************//**
- *
- * @brief look up taxon id based on an identifier (accession number etc.)
- *
- *****************************************************************************/
-taxon_id find_taxon_id(
-    const std::map<string,taxon_id>& name2tax,
-    const string& name)
-{
-    if(name2tax.empty()) return taxonomy::none_id();
-    if(name.empty()) return taxonomy::none_id();
-
-    //try to find exact match
-    auto i = name2tax.find(name);
-    if(i != name2tax.end()) return i->second;
-
-    //find nearest match
-    i = name2tax.upper_bound(name);
-    if(i == name2tax.end()) return taxonomy::none_id();
-
-    //if nearest match contains 'name' as prefix -> good enough
-    //e.g. accession vs. accession.version
-    if(i->first.compare(0,name.size(),name) != 0) return taxonomy::none_id();
-    return i->second;
-}
-
-
-
 // ---------------------------------------------------------------------------
 struct input_sequence {
     sequence_reader::header_type header;
@@ -252,17 +205,10 @@ void prepare_database(database& db, const build_options& opt)
              << dbconf.maxLoadFactor << '\n';
     }
 
-    if(db.non_target_taxon_count() < 1 && opt.infoLevel != info_level::silent) {
-        cout << "The datbase doesn't contain a taxonomic hierarchy yet.\n"
-             << "You can add one or update later via:\n"
-             << "   rnacache modify <database> -taxonomy <directory>"
-             << endl;
-    }
-
     if(dbconf.removeAmbigFeatures &&
        opt.infoLevel != info_level::silent)
     {
-        cout << "Ambiguous features will be removed afterwards.\n";
+        cerr << "Ambiguous features will be removed afterwards.\n";
     }
 }
 

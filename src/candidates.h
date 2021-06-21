@@ -65,7 +65,6 @@ struct window_range
  *****************************************************************************/
 struct match_candidate
 {
-    using taxon        = mc::taxon;
     using window_id    = mc::window_id;
     using window_range = mc::window_range;
     using count_type   = std::uint_least64_t;
@@ -73,14 +72,12 @@ struct match_candidate
     constexpr
     match_candidate() noexcept = default;
 
-    match_candidate(const taxon* tax, count_type hits) :
-        tax{tax},
-        tgt{std::numeric_limits<target_id>::max()},
-        hits{hits},
-        pos{}
-    {};
+    // match_candidate(count_type hits) :
+    //     tgt{std::numeric_limits<target_id>::max()},
+    //     hits{hits},
+    //     pos{}
+    // {};
 
-    const taxon* tax = nullptr;
     target_id    tgt = std::numeric_limits<target_id>::max();
     count_type   hits = 0;
     window_range pos;
@@ -212,7 +209,6 @@ public:
      */
     template<class Locations>
     best_distinct_matches_in_contiguous_window_ranges(
-        const database& db,
         const Locations& matches,
         const candidate_generation_rules& rules = candidate_generation_rules{})
     :
@@ -220,7 +216,7 @@ public:
     {
         for_all_contiguous_window_ranges(matches, rules.maxWindowsInRange,
             [&,this] (match_candidate& cand) {
-                return insert(cand, db, rules);
+                return insert(cand, rules);
             });
     }
 
@@ -241,13 +237,8 @@ public:
      * @brief insert candidate and keep list sorted
      */
     bool insert(match_candidate cand,
-                const database& db,
                 const candidate_generation_rules& rules = candidate_generation_rules{})
     {
-        cand.tax = db.taxon_of_target(cand.tgt);
-
-        if(!cand.tax) return true;
-
         auto greater = [] (const match_candidate& a, const match_candidate& b) {
                            return a.hits > b.hits;
                        };
@@ -297,7 +288,6 @@ public:
      */
     template<class Locations>
     distinct_matches_in_contiguous_window_ranges(
-        const database& db,
         const Locations& matches,
         const candidate_generation_rules& rules = candidate_generation_rules{})
     :
@@ -305,7 +295,7 @@ public:
     {
         for_all_contiguous_window_ranges(matches, rules.maxWindowsInRange,
             [&,this] (match_candidate& cand) {
-                return insert(cand, db, rules);
+                return insert(cand, rules);
             });
     }
 
@@ -330,10 +320,8 @@ public:
      * @brief insert candidate and keep list sorted
      */
     bool insert(match_candidate cand,
-                const database& db,
                 const candidate_generation_rules& = candidate_generation_rules{})
     {
-        cand.tax = db.taxon_of_target(cand.tgt); // RNA mode assumes this never changes!
         cand_.push_back(cand);
         return true;
     }

@@ -27,7 +27,6 @@
 #include <iosfwd>
 
 #include "config.h"
-#include "taxonomy.h"
 #include "classify_common.h"
 #include "classification_statistics.h"
 #include "matches_per_target.h"
@@ -54,8 +53,9 @@ void show_query_parameters(std::ostream&, const query_options&);
  *
  *****************************************************************************/
 void show_taxon(std::ostream&,
+                const database&,
                 const classification_output_formatting&,
-                const taxon* classified);
+                target_id classified);
 
 
 /*************************************************************************//**
@@ -74,6 +74,7 @@ void show_taxon_header(std::ostream&,
  *
  *****************************************************************************/
 void show_candidates(std::ostream&,
+                     const database&,
                      const classification_candidates&);
 
 

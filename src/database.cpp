@@ -25,9 +25,8 @@
 
 namespace mc {
 
-
 // ----------------------------------------------------------------------------
-bool database::add_target(const sequence& seq, taxon_name sid,
+bool database::add_target(const sequence& seq, target_name sid,
                           file_source source)
 {
     using std::begin;
@@ -44,27 +43,15 @@ bool database::add_target(const sequence& seq, taxon_name sid,
     if(name2tax_.find(sid) != name2tax_.end()) return false;
 
     const auto targetCount = target_id(targets_.size());
-    const auto taxid = taxon_id_of_target(targetCount);
 
     //sketch sequence -> insert features
     source.windows = add_all_window_sketches(seq, targetCount);
 
-    //insert sequence metadata as a new taxon
-    auto nit = taxa_.emplace(
-        taxid, sid,
-        std::move(source));
+    //store sequence metadata
+    targets_.emplace_back(sid, std::move(source));
 
-    //should never happen
-    if(nit == taxa_.end()) {
-        throw std::runtime_error{"target taxon could not be created"};
-    }
-
-    //allows lookup via sequence id (e.g. NCBI accession number)
-    const taxon* newtax = &(*nit);
-    name2tax_.insert({std::move(sid), newtax});
-
-    //target id -> taxon lookup table
-    targets_.push_back(newtax);
+    //allows lookup via sequence id
+    name2tax_.insert({std::move(sid), targetCount});
 
     return true;
 }
@@ -101,13 +88,13 @@ void database::read(const std::string& filename, scope what)
         uint8_t targetSize = 0;  read_binary(is, targetSize);
         uint8_t windowSize = 0;  read_binary(is, windowSize);
         uint8_t bucketSize = 0;  read_binary(is, bucketSize);
-        uint8_t taxidSize = 0;   read_binary(is, taxidSize);
+        uint8_t tgtidSize = 0;   read_binary(is, tgtidSize);
 
         if( (sizeof(feature) != featureSize) ||
             (sizeof(target_id) != targetSize) ||
             (sizeof(bucket_size_type) != bucketSize) ||
             (sizeof(window_id) != windowSize) ||
-            (sizeof(taxon_id) != taxidSize) )
+            (sizeof(target_id) != tgtidSize) )
         {
             throw file_read_error{
                 "Database " + filename +
@@ -126,22 +113,12 @@ void database::read(const std::string& filename, scope what)
     read_binary(is, maxLocsPerFeature_);
 
     //taxon metadata
-    read_binary(is, taxa_);
-
-    target_id targetCount = 0;
-    read_binary(is, targetCount);
-    if(targetCount < 1) return;
-
-    //update target id -> target taxon lookup table
-    targets_.reserve(targetCount);
-    for(decltype(targetCount) i = 0 ; i < targetCount; ++i) {
-        targets_.push_back(taxa_[taxon_id_of_target(i)]);
-    }
+    read_binary(is, targets_);
 
     //sequence id lookup
     name2tax_.clear();
-    for(const auto& t : taxa_) {
-        name2tax_.insert({t.name(), &t});
+    for(target_id t = 0; t < targets_.size(); ++t) {
+        name2tax_.insert({targets_[t].name(), t});
     }
 
     if(what == scope::metadata_only) return;
@@ -172,7 +149,7 @@ void database::write(const std::string& filename) const
     write_binary(os, uint8_t(sizeof(target_id)));
     write_binary(os, uint8_t(sizeof(window_id)));
     write_binary(os, uint8_t(sizeof(bucket_size_type)));
-    write_binary(os, uint8_t(sizeof(taxon_id)));
+    write_binary(os, uint8_t(sizeof(target_id)));
 
     //sketching parameters
     write_binary(os, targetSketcher_);
@@ -182,8 +159,7 @@ void database::write(const std::string& filename) const
     write_binary(os, maxLocsPerFeature_);
 
     //taxon & target metadata
-    write_binary(os, taxa_);
-    write_binary(os, target_id(targets_.size()));
+    write_binary(os, targets_);
 
     //hash table
     write_binary(os, features_);
@@ -233,10 +209,6 @@ database::remove_ambiguous_features(bucket_size_type maxambig)
 {
     feature_count_type rem = 0;
 
-    if(taxa_.empty()) {
-        throw std::runtime_error{"no taxonomy available!"};
-    }
-
     if(maxambig == 0) maxambig = 1;
 
     for(auto i = features_.begin(), e = features_.end(); i != e; ++i) {
@@ -259,6 +231,7 @@ database::remove_ambiguous_features(bucket_size_type maxambig)
 
 // ----------------------------------------------------------------------------
 void database::clear() {
+    targets_.clear();
     name2tax_.clear();
     features_.clear();
 }
@@ -269,6 +242,7 @@ void database::clear() {
  * @brief very dangerous! clears feature map without memory deallocation
  */
 void database::clear_without_deallocation() {
+    targets_.clear();
     name2tax_.clear();
     features_.clear_without_deallocation();
 }

@@ -763,9 +763,9 @@ extract_taxon_id(const string& text)
 {
     if(text.empty()) return 0;
 
-    auto i = text.find("taxid");
+    auto i = text.find("tgtid");
     if(i != string::npos) {
-        //skip "taxid" + separator char
+        //skip "tgtid" + separator char
         i += 6;
         //find end of number
         auto j = text.find('|', i);
