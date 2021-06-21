@@ -52,8 +52,16 @@ void show_query_parameters(std::ostream& os, const query_options& opt)
     }
 
     os << comment
-       << "Classification hit threshold is "
+       << "Minimum hit threshold is "
        << opt.classify.hitsMin << " per query\n";
+    
+    os << comment
+       << "Hit cutoff is "
+       << int(opt.classify.hitsCutoff*100) << "% of the maximal hit per query\n";
+
+    os << comment
+       << "Coverage cutoff is "
+       << int(opt.classify.covMin*100) << "% of the maximal candidate target coverage per query\n";
 
     if (std::is_same<classification_candidates, best_distinct_matches_in_contiguous_window_ranges>()) {
         os << comment
@@ -254,7 +262,7 @@ void print_static_properties(const database& db)
 
     std::cout
         << "------------------------------------------------\n"
-        << "RNACache version    " << RC_VERSION_STRING << " (" << RC_VERSION << ")\n"
+        << "RNACache version     " << RC_VERSION_STRING << " (" << RC_VERSION << ")\n"
         << "database version     " << RC_DB_VERSION << '\n'
         << "------------------------------------------------\n"
         << "sequence type        " << type_name<database::sequence>() << '\n'
@@ -288,8 +296,7 @@ void print_content_properties(const database& db)
     if(db.target_count() > 0) {
 
         std::cout
-        << "targets              " << db.target_count() << '\n'
-        << "taxa in tree         " << db.non_target_taxon_count() << '\n';
+        << "targets              " << db.target_count() << '\n';
     }
 
     if(db.feature_count() > 0) {
