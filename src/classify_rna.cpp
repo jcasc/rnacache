@@ -721,13 +721,13 @@ void show_sam_minimal(std::ostream& os, const alignment_targets& refs, const seq
 }
 
 #ifdef RC_BAM
-void add_bam_minimal(bam_buffer& bam_buf, const alignment_targets& refs, const sequence_query& query, const taxon* tax, bool primary) {
+void add_bam_minimal(bam_buffer& bam_buf, const alignment_targets& refs, const sequence_query& query, target_id tgt, bool primary) {
 
     // function only applicable for mapped reads atm
     // function only applicable for paired reads atm
 
     std::string qname = query.header.substr(0, query.header.size() - 2);
-    size_t l_tgt = refs(tax).seq.size();
+    size_t l_tgt = refs[tgt].seq.size();
     size_t l_read = query.seq1.size();
     size_t l_template = std::min(l_tgt, l_read);
 
@@ -744,15 +744,15 @@ void add_bam_minimal(bam_buffer& bam_buf, const alignment_targets& refs, const s
     }
 
     // mate 1
-    bam_buf.add_bam(qname.size(), qname.data(), flag1, refs.id(tax), 0, 255, n_cigar, cigar,
-             refs.id(tax), 0, l_template, l_read, query.seq1.data(), nullptr, 0);
+    bam_buf.add_bam(qname.size(), qname.data(), flag1, tgt, 0, 255, n_cigar, cigar,
+             tgt, 0, l_template, l_read, query.seq1.data(), nullptr, 0);
     
     // mate 2
     std::string recv2 = query.seq2;
     reverse_complement(recv2);
 
-    bam_buf.add_bam(qname.size(), qname.data(), flag2, refs.id(tax), 0, 255, n_cigar, cigar,
-             refs.id(tax), 0, l_template, l_read, recv2.data(), nullptr, 0);
+    bam_buf.add_bam(qname.size(), qname.data(), flag2, tgt, 0, 255, n_cigar, cigar,
+             tgt, 0, l_template, l_read, recv2.data(), nullptr, 0);
 }
 #endif
 
@@ -821,17 +821,13 @@ void add_bam_alignments(bam_buffer& bam_buf,
     size_t max_cand = 0;
     for (size_t i = 0; i < cands.size(); ++i) {
         const auto& cand = cands[i];
-        if(!cand.tax || cand.tax->rank() != taxon_rank::Sequence)
-            continue;
         if (cand.hits > cands[max_cand].hits) {
             max_cand = i;
         }
     }
     for (size_t i = 0; i < cands.size(); ++i) {
         const auto& cand = cands[i];
-        if(!cand.tax || cand.tax->rank() != taxon_rank::Sequence)
-            continue;
-        add_bam_minimal(bam_buf, refs, query, cand.tax, i == max_cand);
+        add_bam_minimal(bam_buf, refs, query, cand.tgt, i == max_cand);
     }
 
 
