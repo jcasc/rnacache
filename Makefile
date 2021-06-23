@@ -67,7 +67,6 @@ clean :
 # dependencies
 #--------------------------------------------------------------------
 HEADERS = \
-          src/alignment.h \
           src/batch_processing.h \
           src/bitmanip.h \
           src/candidates.h \

@@ -25,11 +25,11 @@
 #define RC_VERSION_H_
 
 
-#define RC_VERSION 20210622
+#define RC_VERSION 20210623
 
-#define RC_DB_VERSION 20210622
+#define RC_DB_VERSION 20210623
 
-#define RC_VERSION_STRING "0.9.1"
+#define RC_VERSION_STRING "0.9.2"
 
 
 #endif

@@ -85,7 +85,7 @@ struct database_storage_options
     bool removeOverpopulatedFeatures = true;
 
 
-    // restrict number of taxa (on a given rank) per feature
+    // restrict number of targets per features
     bool removeAmbigFeatures = false;
     int maxTaxaPerFeature = 1;
 };
@@ -199,10 +199,10 @@ enum class map_view_mode : unsigned char {
 
 /*************************************************************************//**
  *
- * @brief how taxon formatting will be done
+ * @brief how target formatting will be done
  *
  *****************************************************************************/
-struct taxon_print_style {
+struct target_print_style {
     bool showName = true;
     bool showId = false;
 };
@@ -271,7 +271,7 @@ struct classification_evaluation_options
     //test accuracy (ground truth must be available)
     bool accuracy = false;
 
-    //show known taxon (or complete lineage if 'showLineage' on)
+    //show known target
     bool determineGroundTruth = false;
 };
 
@@ -291,12 +291,12 @@ struct formatting_tokens {
     std::string none = "--";
     //column separator
     std::string column = "\t|\t";
-    //taxon separator
+    //target separator
     std::string taxSeparator = ",";
-    //if both taxid AND taxon name are to be printed,
-    //taxids will be enclosed by these:
-    std::string taxidPrefix = "(";
-    std::string taxidSuffix = ")";
+    //if both tgtid AND target name are to be printed,
+    //tgtids will be enclosed by these:
+    std::string tgtidPrefix = "(";
+    std::string tgtidSuffix = ")";
 };
 
 
@@ -312,7 +312,7 @@ struct classification_output_formatting
 
     bool showQueryIds = false;
 
-    taxon_print_style taxonStyle;
+    target_print_style targetStyle;
 
     formatting_tokens tokens;
 };

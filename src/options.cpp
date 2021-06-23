@@ -681,14 +681,14 @@ classification_output_format_cli(classification_output_formatting& opt,
               "default: "s + (opt.mapViewMode == map_view_mode::mapped_only ? "on" : "off"))
         )
         ,
-        option("-taxids", "-taxid").set(opt.taxonStyle.showId)
-            %("Print taxon ids in addition to taxon names.\n"
-              "default: "s + (opt.taxonStyle.showId ? "on" : "off"))
+        option("-tgtids", "-tgtid").set(opt.targetStyle.showId)
+            %("Print target ids in addition to target names.\n"
+              "default: "s + (opt.targetStyle.showId ? "on" : "off"))
         ,
-        option("-taxids-only", "-taxidsonly")
-            .set(opt.taxonStyle.showId).set(opt.taxonStyle.showName,false)
-            %("Print taxon ids instead of taxon names.\n"
-              "default: "s + (opt.taxonStyle.showId && !opt.taxonStyle.showName ? "on" : "off"))
+        option("-tgtids-only", "-tgtidsonly")
+            .set(opt.targetStyle.showId).set(opt.targetStyle.showName,false)
+            %("Print target ids instead of target names.\n"
+              "default: "s + (opt.targetStyle.showId && !opt.targetStyle.showName ? "on" : "off"))
         ,
         (   option("-separator") &
             value("text", [&](const string& arg) {
@@ -751,7 +751,7 @@ classification_evaluation_cli(classification_evaluation_options& opt,
         option("-ground-truth", "-groundtruth")
             .set(opt.determineGroundTruth).set(opt.showGroundTruth)
             %("Report correct query taxa if known.\n"
-              "Queries need to have either a 'taxid|<number>' entry in "
+              "Queries need to have either a 'tgtid|<number>' entry in "
               "their header or a sequence id that is also present in "
               "the database.\n"
               "This feature decreases querying speed!\n"
@@ -760,7 +760,7 @@ classification_evaluation_cli(classification_evaluation_options& opt,
         option("-accuracy").set(opt.accuracy).set(opt.determineGroundTruth)
             %("Report accuracy stats "
               "by comparing query origins (ground truth) and mappings.\n"
-              "Queries need to have either a 'taxid|<number>' entry in "
+              "Queries need to have either a 'tgtid|<number>' entry in "
               "their header or a sequence id that is also found in "
               "the database.\n"
               "This feature might decrease querying speed!\n"
@@ -1074,7 +1074,7 @@ string query_mode_docs() {
  *
  *
  *****************************************************************************/
-/// @brief shared command-line options for taxonomy
+/// @brief shared command-line options for info
 clipp::group
 info_mode_cli(info_options& opt, error_messages& err)
 {

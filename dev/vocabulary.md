@@ -3,9 +3,6 @@ RNACache Vocabulary
 ```
  term        explanation
 
- taxon       node in the tree of life
- rank        named level in the tree of life (species, genus, family , ...)
-
  query       read or pair of reads to be classified
  target      (transcriptomic) reference sequence
 
@@ -17,5 +14,5 @@ RNACache Vocabulary
 
  location    {target id , window index within target}
 
- database    feature->location hash table + taxonomy + some auxiliary data
+ database    feature->location hash table + some auxiliary data
 ```

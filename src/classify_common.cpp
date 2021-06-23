@@ -54,7 +54,7 @@ void show_query_mapping_header(std::ostream& os,
     os << "query_header" << colsep;
 
     if(opt.evaluate.showGroundTruth) {
-        show_taxon_header(os, opt.format, "truth_");
+        show_target_header(os, opt.format, "truth_");
         os << colsep;
     }
 
@@ -100,22 +100,22 @@ make_classification_candidates<match_locations>(const database& db,
 
 //-----------------------------------------------------------------------------
 target_id
-ground_truth_taxon(const database& db, const string& header)
+ground_truth_target(const database& db, const string& header)
 {
     //try to extract query id and find the corresponding target in database
     target_id tgt = database::nulltgt;
-    tgt = db.taxon_with_name(extract_accession_string(header, sequence_id_type::acc_ver));
+    tgt = db.target_with_name(extract_accession_string(header, sequence_id_type::acc_ver));
     if(tgt) return tgt;
 
-    tgt = db.taxon_with_similar_name(extract_accession_string(header, sequence_id_type::acc));
+    tgt = db.target_with_similar_name(extract_accession_string(header, sequence_id_type::acc));
     if(tgt) return tgt;
 
     //try to extract id from header
-    tgt = extract_taxon_id(header);
+    tgt = extract_target_id(header);
     if(tgt) return tgt;
 
     //try to find entire header as sequence identifier
-    tgt = db.taxon_with_name(header);
+    tgt = db.target_with_name(header);
 
     return tgt;
 }
@@ -161,7 +161,7 @@ void show_query_mapping(
     os << colsep;
 
     if(opt.evaluate.showGroundTruth) {
-        show_taxon(os, db, opt.format, cls.groundTruth);
+        show_target(os, db, opt.format, cls.groundTruth);
         os << colsep;
     }
 

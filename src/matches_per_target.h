@@ -273,12 +273,6 @@ public:
         return hitsPerTarget_.at(tgt).size();
     }
 
-    // void print(const database& db) const {
-    //     std::ofstream os("covdist.tsv");
-    //     for (const auto& tgt: *this)
-    //         os << tgt.first << "\t" << double(num_hits(tgt.first))/db.taxon_of_target(tgt.first)->source().windows << '\n';
-    // }
-
 private:
     hits_per_target hitsPerTarget_;
 };

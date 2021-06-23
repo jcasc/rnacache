@@ -759,7 +759,7 @@ extract_accession_string(const string& text, sequence_id_type idtype)
 
 //-------------------------------------------------------------------
 std::int_least64_t
-extract_taxon_id(const string& text)
+extract_target_id(const string& text)
 {
     if(text.empty()) return 0;
 

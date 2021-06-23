@@ -60,7 +60,7 @@ struct window_range
 
 /*************************************************************************//**
  *
- * @brief hit count and position in candidate taxon
+ * @brief hit count and position in candidate target
  *
  *****************************************************************************/
 struct match_candidate
@@ -109,7 +109,7 @@ struct candidate_generation_rules
  *         that are at most 'numWindows' long;
  *         the main loop is aborted if 'consume' returns false
  *
- * @pre    matches must be sorted by taxon (first) and window (second)
+ * @pre    matches must be sorted by target (first) and window (second)
  *
  * @tparam Consumer : function object that processes one match_candidate
  *                    and returns a bool indicating, if loop should be continued
@@ -205,7 +205,7 @@ public:
     best_distinct_matches_in_contiguous_window_ranges() = default;
 
     /****************************************************************
-     * @pre matches must be sorted by taxon (first) and window (second)
+     * @pre matches must be sorted by target (first) and window (second)
      */
     template<class Locations>
     best_distinct_matches_in_contiguous_window_ranges(
@@ -284,7 +284,7 @@ public:
 
 
     /****************************************************************
-     * @pre matches must be sorted by taxon (first) and window (second)
+     * @pre matches must be sorted by target (first) and window (second)
      */
     template<class Locations>
     distinct_matches_in_contiguous_window_ranges(

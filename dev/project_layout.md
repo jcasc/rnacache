@@ -16,7 +16,6 @@ modes.h                      declares mode starting functions
 mode_query.cpp               start classification 
 mode_build.cpp               database building 
 mode_info.cpp                database property queries
-mode_annotate.cpp            annotates read files with ground truth
 mode_help.cpp                shows help files from /docs
 ```
 
@@ -27,9 +26,10 @@ query_options.h              all query/classification settings
 query_options.cpp            command line args -> query settings
 
 classification.h             classification starting function
-classification.cpp           query database and classify reads based on matches 
+classify_common.h            query database and classify reads based on matches 
+classify_rna.cpp             query database and classify reads based on matches 
 candidates.h                 determine top hits in contiguous windows
-matches_per_target.h         target->matches map construction
+matches_per_target.h         coverage map construction
 
 querying.h                   multi-threaded, batched database query functions;
                              also paired-end read handling
@@ -40,12 +40,9 @@ printing.h/cpp               classification and analysis output functions
 Database Operations / Sketching
 ---------------------------------------------------------------------
 ```                          
-database.h            feature->location map + taxonomy + auxiliary data
+database.h            feature->location map + auxiliary data
 hash_multimap.h              hashmap used by database
 chunk_allocator.h            default allocator used by hash_multimap
-
-taxonomy.h                   taxonomic tree
-taxonomy_io.h/cpp            NCBI taxonomic files -> taxonomic tree
 
 bitmanip.h                   bit-level manipulation functions
 dna_encoding.h               ASCII DNA strings -> 2-bit encoded kmers
@@ -61,7 +58,7 @@ sequence_view.h              non-owning string view class
 Analysis
 ---------------------------------------------------------------------
 ```
-classification_statistics.h  rank-based classification statistics
+classification_statistics.h  classification statistics
 
 alignment.h                  construct (semi-global) alignments
 
@@ -83,8 +80,6 @@ cmdline_utility.h/cpp
 io_serialize.h               fundamental datatype (de-)serialization functions
 io_options.h                 I/O related option types
 io_error.h                   I/O exception definitions
-
-parallel_task_queue.h        thread pool
 
 timer.h                      simple std::chrono based timer class
 string_utils.h               string processing utilities (trim)

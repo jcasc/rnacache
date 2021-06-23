@@ -62,24 +62,12 @@ namespace mc {
  * @details terminology
  *  target          reference sequence whose sketches are stored in the DB
  *
- *  taxon           one node in a taxonomic hierarchy (sequence metadata is
- *                  also stored in taxa)
- *
- *  taxon_id        numeric taxon identifier
- *  taxon_name      alphanumeric sequence identifier (e.g. an NCBI accession)
- *
  *  query           sequence (usually short reads) that shall be matched against
  *                  the reference targets
  *
  *  window_id       window index (starting with 0) within a target
  *
  *  location        (window_id, target id) = "window within a target sequence"
- *
- *  full_lineage    path from root -> lowest taxon (vector of const taxon*);
- *                  may have arbitrary length
- *
- *  ranked_lineage  main rank taxon ids (array of const taxon*);
- *                  has fixed length; each index always refers to the same rank
  *
  *  sketcher        function object type, that maps reference sequence
  *                      windows (= sequence interval) to
@@ -427,9 +415,8 @@ public:
 
     //---------------------------------------------------------------
     /**
-     * @brief  removes features that have more than 'maxambig' different
-     *         taxa on a certain taxonomic rank
-     *         e.g. remove features that are present in more than 4 phyla
+     * @brief  removes features that appear in more than 'maxambig' different
+     *         targets
      *
      * @return number of features (hash table buckets) that were removed
      */
@@ -470,10 +457,10 @@ public:
 
     //-----------------------------------------------------
     /**
-     * @brief will only find sequence-level taxon names == sequence id
+     * @brief finds exact target names
      */
     target_id
-    taxon_with_name(const target_name& name) const noexcept {
+    target_with_name(const target_name& name) const noexcept {
         if(name.empty()) return nulltgt;
         auto i = name2tax_.find(name);
         if(i == name2tax_.end()) return nulltgt;
@@ -481,10 +468,10 @@ public:
     }
     //-----------------------------------------------------
     /**
-     * @brief will find sequence-level taxon names with different versions
+     * @brief will find target names with different versions
      */
     target_id
-    taxon_with_similar_name(const target_name& name) const noexcept {
+    target_with_similar_name(const target_name& name) const noexcept {
         if(name.empty()) return nulltgt;
         auto i = name2tax_.upper_bound(name);
         if(i == name2tax_.end()) return nulltgt;

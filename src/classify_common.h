@@ -33,7 +33,6 @@
 #include "config.h"
 #include "candidates.h"
 #include "classification_statistics.h"
-#include "alignment.h"
 #include "sequence_view.h"
 #include "timer.h"
 #include "querying.h"
@@ -94,12 +93,12 @@ struct classification_results
 
 /*************************************************************************//**
  *
- * @brief returns the ground truth taxon based on a sequence header info
- *        (needed for precision tests)
+ * @brief returns the ground truth target based on a sequence header info
+ *        (needed for accuracy tests)
  *
  *****************************************************************************/
 target_id
-ground_truth_taxon(const database&, const std::string& header);
+ground_truth_target(const database&, const std::string& header);
 
 
 

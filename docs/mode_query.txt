@@ -106,10 +106,10 @@ CLASSIFICATION RESULT FORMATTING
     -mapped-only      Don't list unclassified reads/read pairs.
                       default: off
 
-    -taxids           Print taxon ids in addition to taxon names.
+    -tgtids           Print target ids in addition to target names.
                       default: off
 
-    -taxids-only      Print taxon ids instead of taxon names.
+    -tgtids-only      Print target ids instead of target names.
                       default: off
 
     -separator <text> Sets string that separates output columns.
@@ -138,7 +138,7 @@ ANALYSIS: RAW DATABASE HITS
 ADVANCED: GROUND TRUTH BASED EVALUATION
 
     -ground-truth     Report correct query taxa if known.
-                      Queries need to have either a 'taxid|<number>' entry in
+                      Queries need to have either a 'tgtid|<number>' entry in
                       their header or a sequence id that is also present in the
                       database.
                       This feature decreases querying speed!
@@ -146,7 +146,7 @@ ADVANCED: GROUND TRUTH BASED EVALUATION
 
     -accuracy         Report accuracy stats by comparing query origins (ground
                       truth) and mappings.
-                      Queries need to have either a 'taxid|<number>' entry in
+                      Queries need to have either a 'tgtid|<number>' entry in
                       their header or a sequence id that is also found in the
                       database.
                       This feature might decrease querying speed!

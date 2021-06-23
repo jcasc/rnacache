@@ -143,7 +143,7 @@ void show_target_info(const info_options& opt)
 
     if(!opt.targetIds.empty()) {
         for(const auto& tid : opt.targetIds) {
-            const auto tgt = db.taxon_with_name(tid);
+            const auto tgt = db.target_with_name(tid);
             if(tgt != database::nulltgt) {
                 show_target_info(cout, db, tgt);
             }

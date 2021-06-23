@@ -86,17 +86,17 @@ void show_query_parameters(std::ostream& os, const query_options& opt)
 
 
 //-------------------------------------------------------------------
-void show_taxon_header(std::ostream& os,
+void show_target_header(std::ostream& os,
                        const classification_output_formatting& opt,
                        const std::string& prefix)
 {
-    const auto& style = opt.taxonStyle;
+    const auto& style = opt.targetStyle;
     const auto& fmt = opt.tokens;
 
     if(style.showName) {
         os << prefix << "tgtname";
         if(style.showId) {
-            os << fmt.taxidPrefix << prefix << "tgtid" << fmt.taxidSuffix;
+            os << fmt.tgtidPrefix << prefix << "tgtid" << fmt.tgtidSuffix;
         }
     }
     else if(style.showId) {
@@ -107,16 +107,16 @@ void show_taxon_header(std::ostream& os,
 
 
 //-------------------------------------------------------------------
-void print_taxon(std::ostream& os,
+void print_target(std::ostream& os,
                  const std::string& taxName,
                  target_id id,
-                 taxon_print_style style,
+                 target_print_style style,
                  const formatting_tokens& fmt)
 {
     if(style.showName) {
         os << taxName;
         if(style.showId) {
-            os << fmt.taxidPrefix << id << fmt.taxidSuffix;
+            os << fmt.tgtidPrefix << id << fmt.tgtidSuffix;
         }
     }
     else if(style.showId) {
@@ -127,15 +127,15 @@ void print_taxon(std::ostream& os,
 
 
 //-------------------------------------------------------------------
-void show_taxon(std::ostream& os,
+void show_target(std::ostream& os,
                 const database& db,
                 const classification_output_formatting& opt,
                 target_id tgt)
 {
     if(tgt == database::nulltgt) 
-        print_taxon(os, opt.tokens.none, database::nulltgt, opt.taxonStyle, opt.tokens);
+        print_target(os, opt.tokens.none, database::nulltgt, opt.targetStyle, opt.tokens);
     else  {
-        print_taxon(os, db.get_target(tgt).name(), tgt, opt.taxonStyle, opt.tokens);
+        print_target(os, db.get_target(tgt).name(), tgt, opt.targetStyle, opt.tokens);
     }
 }
 

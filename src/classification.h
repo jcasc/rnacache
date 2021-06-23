@@ -44,7 +44,7 @@ struct classification_results;
 
 /*************************************************************************//**
  *
- * @brief try to map each read from the input files to a taxon
+ * @brief try to map each read from the input files to a target
  *        according to the query options
  *
  *****************************************************************************/
@@ -57,7 +57,7 @@ void map_queries_to_targets(
 
 /*************************************************************************//**
  *
- * @brief needed for 'merge' mode: try to map candidates to a taxon
+ * @brief needed for 'merge' mode: try to map candidates to a target
  *        according to the query options
  *
  *****************************************************************************/

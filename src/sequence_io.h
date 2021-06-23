@@ -303,10 +303,10 @@ std::string extract_accession_string(const std::string&,
 
 /*************************************************************************//**
  *
- * @brief extracts the numeric part from a taxid identifier
+ * @brief extracts the numeric part from a tgtid identifier
  *
  *****************************************************************************/
-std::int_least64_t extract_taxon_id(const std::string&);
+std::int_least64_t extract_target_id(const std::string&);
 
 
 

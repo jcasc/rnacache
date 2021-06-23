@@ -236,7 +236,7 @@ void evaluate_classification(
     rna_mapping_statistics& statistics)
 {
     if (opt.determineGroundTruth)
-        cls.groundTruth = ground_truth_taxon(db, query.header);
+        cls.groundTruth = ground_truth_target(db, query.header);
     
     if (opt.accuracy) {
         if (!cls.groundTruth) {
@@ -305,13 +305,6 @@ struct mappings_buffer
 
     matches_per_target_light coverage;
 
-    // query_matches mappings;
-    // taxon_list truth;
-
-    // search
-    matches_per_target_param pcoverage;
-    // std::vector<std::vector<uint16_t>> hitcounts;
-
     #ifdef RC_BAM
     bam_buffer bam_buf;
     mappings_buffer(size_t n) : bam_buf(n) {}
@@ -332,15 +325,15 @@ struct alignment_targets {
     }
 
     void load(const database& db) {
-        using indexed_taxons = std::unordered_map<size_t, target_id>;
-        using catalogue = std::pair<std::unique_ptr<sequence_reader>, indexed_taxons>;
+        using indexed_targets = std::unordered_map<size_t, target_id>;
+        using catalogue = std::pair<std::unique_ptr<sequence_reader>, indexed_targets>;
         
         std::unordered_map<std::string, catalogue> catalogues;
 
         for (target_id tgt = 0; tgt < db.target_count(); ++tgt) {
             const auto& src = db.get_target(tgt).source();
             if (!catalogues.count(src.filename))
-                catalogues.emplace(src.filename, catalogue{make_sequence_reader(src.filename), indexed_taxons()});
+                catalogues.emplace(src.filename, catalogue{make_sequence_reader(src.filename), indexed_targets()});
             catalogues[src.filename].second.emplace(src.index, tgt);
         }
 
@@ -348,12 +341,12 @@ struct alignment_targets {
         for (auto& i: catalogues) {
             auto& cat = i.second;
             auto& reader = cat.first;
-            auto& taxons = cat.second;
+            auto& targets = cat.second;
             while (reader->has_next()) {
                 auto idx = reader->index();
-                if(taxons.count(idx)) {
+                if(targets.count(idx)) {
                     auto seq = reader->next();
-                    targets_[taxons[idx]] = {std::move(seq.header), std::move(seq.data)};
+                    targets_[targets[idx]] = {std::move(seq.header), std::move(seq.data)};
                 } else {
                     reader->skip(1);
                 }
@@ -994,20 +987,5 @@ void map_queries_to_targets(const vector<string>& infiles,
 }
 
 
-
-/*************************************************************************//**
- *
- * @brief needed for 'merge' mode: default classification scheme & output
- *        try to map candidates to a taxon with the lowest possible rank
- *
- *****************************************************************************/
-void map_candidates_to_targets(
-    const vector<string>&,
-    const vector<classification_candidates>&,
-    const database&, const query_options&,
-    classification_results&)
-{
-    throw std::runtime_error{"merge mode not available for RNA mapping"};
-}
 
 } // namespace mc

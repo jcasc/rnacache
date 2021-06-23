@@ -112,7 +112,7 @@ void database::read(const std::string& filename, scope what)
     //target insertion parameters
     read_binary(is, maxLocsPerFeature_);
 
-    //taxon metadata
+    //target metadata
     read_binary(is, targets_);
 
     //sequence id lookup
@@ -158,7 +158,7 @@ void database::write(const std::string& filename) const
     //target insertion parameters
     write_binary(os, maxLocsPerFeature_);
 
-    //taxon & target metadata
+    //target metadata
     write_binary(os, targets_);
 
     //hash table
