@@ -40,7 +40,7 @@
 namespace mc {
 
 /*************************************************************************//**
-* @brief loops through all subranges of [first,last) of lenght 'len' with a
+* @brief loops through all subranges of [first,last) of length 'len' with a
 *        stride of 'stride'
 *
 * @param first    iterator to start of range

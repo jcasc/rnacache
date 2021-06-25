@@ -29,6 +29,7 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <unordered_map>
 #include <functional>
 #include <algorithm>
 #include <type_traits>
@@ -38,6 +39,7 @@
 #include <memory>
 #include <future>
 #include <chrono>
+#include <sstream>
 
 #include "version.h"
 #include "config.h"
@@ -47,6 +49,7 @@
 #include "hash_multimap.h"
 #include "dna_encoding.h"
 #include "typename.h"
+#include "sequence_io.h"
 
 #include "batch_processing.h"
 
@@ -103,7 +106,7 @@ public:
     using match_count_type = std::uint16_t;
 
     //---------------------------------------------------------------
-    enum class scope { everything, metadata_only };
+    enum class scope { sketches, metadata_only , everything};
 
 
     //-----------------------------------------------------
@@ -182,8 +185,9 @@ public:
         {}
 
         const target_name& name() const noexcept { return name_; }
-
         const file_source& source() const noexcept { return source_; }
+        const std::string& header() const noexcept {return header_;}
+        const sequence& seq() const noexcept {return seq_;}
 
         //-----------------------------------------------------
         friend
@@ -207,6 +211,10 @@ public:
     private:
         target_name name_;
         file_source source_;
+        
+        // only used in alignment mode
+        std::string header_;
+        sequence seq_;
     };
 
     using file_source = target::file_source;
@@ -265,7 +273,53 @@ private:
 
     using sketch_batch = std::vector<window_sketch>;
 
+    void reread_targets() {
+        using indexed_targets = std::unordered_map<size_t, target_id>;
+        using catalogue = std::pair<std::unique_ptr<sequence_reader>, indexed_targets>;
+        
+        std::unordered_map<std::string, catalogue> catalogues;
+
+        for (target_id tgt = 0; tgt < target_count(); ++tgt) {
+            const auto& src = get_target(tgt).source();
+            if (!catalogues.count(src.filename))
+                catalogues.emplace(src.filename, catalogue{make_sequence_reader(src.filename), indexed_targets()});
+            catalogues[src.filename].second.emplace(src.index, tgt);
+        }
+
+        targets_.resize(target_count());
+        for (auto& i: catalogues) {
+            auto& cat = i.second;
+            auto& reader = cat.first;
+            auto& targets = cat.second;
+            while (reader->has_next()) {
+                auto idx = reader->index();
+                if(targets.count(idx)) {
+                    auto seq = reader->next();
+                    targets_[targets[idx]].header_ = std::move(seq.header);
+                    targets_[targets[idx]].seq_ = std::move(seq.data);
+                } else {
+                    reader->skip(1);
+                }
+            }
+        }
+    }
+
 public:
+
+    void show_sam_header(std::ostream& os) const {
+        os << "@HD\tVN:1.0 SO:unsorted\n";
+        for(const auto& tgt: targets_)
+            os << "@SQ\tSN:" << tgt.header_ << "\tLN:" << tgt.seq_.size() << '\n';
+        os << "@PG\tID:rnaache\tPN:rnaache\tVN:" << RC_VERSION_STRING << '\n';
+    }
+
+    std::string get_sam_header() const {
+        std::ostringstream tmp;
+        show_sam_header(tmp);
+        return tmp.str();
+    }
+
+
     //---------------------------------------------------------------
     using feature_count_type = typename feature_store::size_type;
 
@@ -531,7 +585,7 @@ public:
      *          This should make DB files more robust against changes in the
      *          internal mapping structure.
      */
-    void read(const std::string& filename, scope what = scope::everything);
+    void read(const std::string& filename, scope what = scope::sketches);
     /**
      * @brief   write database to binary file
      */
@@ -660,14 +714,17 @@ private:
 
 
 private:
+
+
     //---------------------------------------------------------------
     sketcher targetSketcher_;
     sketcher querySketcher_;
     std::uint64_t maxLocsPerFeature_;
     feature_store features_;
-    target_store targets_;
+    target_store targets_; // target metadata
     std::map<target_name,target_id> name2tax_;
     std::unique_ptr<batch_executor<window_sketch>> inserter_;
+
 };
 
 
@@ -689,7 +746,7 @@ using target = database::target;
  *****************************************************************************/
 database
 make_database(const std::string& filename,
-              database::scope = database::scope::everything,
+              database::scope = database::scope::sketches,
               info_level = info_level::moderate);
 
 

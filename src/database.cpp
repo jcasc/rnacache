@@ -125,6 +125,9 @@ void database::read(const std::string& filename, scope what)
 
     //hash table
     read_binary(is, features_);
+
+    if (what == scope::everything)
+        reread_targets();
 }
 
 

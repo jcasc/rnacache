@@ -37,6 +37,10 @@
 #include "timer.h"
 #include "querying.h"
 
+#ifdef RC_BAM
+#include "sam.h"
+#endif
+
 namespace mc {
 
 
@@ -67,26 +71,27 @@ struct classification_results
 {
     explicit
     classification_results(std::ostream& readOutputTgt   = std::cout,
-                           std::ostream& alignmentOutputTgt = std::cout,
-                           std::ostream& statusTarget    = std::cerr)
+                           std::ostream& samOutputTgt    = std::cout)
     :
-        perReadOut(readOutputTgt),
-        alignmentOut(alignmentOutputTgt),
-        status(statusTarget)
+        mainOut(readOutputTgt),
+        samOut(samOutputTgt)
     {}
 
     void flush_all_streams() {
-        perReadOut.flush();
-        alignmentOut.flush();
-        status.flush();
+        mainOut.flush();
+        samOut.flush();
     }
 
-    std::ostream& perReadOut;
-    std::ostream& alignmentOut; // BAM / SAM
-    std::ostream& status;
+    std::ostream& mainOut;
+    std::ostream& samOut;
     timer time;
 
     rna_mapping_statistics statistics;
+
+    #ifdef RC_BAM
+    samFile* bamOut = nullptr;
+    sam_hdr_t* bamHdr = nullptr;
+    #endif
 };
 
 
@@ -122,10 +127,27 @@ classification_candidates
 make_classification_candidates(const database& db,
                                const classification_options& opt,
                                const sequence_query& query,
-                               const Locations& allhits);
+                               const Locations& allhits)
+{
+    candidate_generation_rules rules;
+
+    rules.maxWindowsInRange = window_id( 2 + (
+        std::max(query.seq1.size() + query.seq2.size(), opt.insertSizeMax) /
+        db.target_sketcher().window_stride() ));
+
+    rules.maxCandidates = opt.maxNumCandidatesPerQuery;
+
+    return classification_candidates{allhits, rules};
+
+}
 
 
-
+/*************************************************************************//**
+ *
+ * @brief shows one query mapping line
+ *        [query id], query_header, classification [, [top|all]hits list]
+ *
+ *****************************************************************************/
 /*************************************************************************//**
  *
  * @brief shows one query mapping line
@@ -139,7 +161,48 @@ void show_query_mapping(
     const classification_output_options& opt,
     const sequence_query& query,
     const classification& cls,
-    const Locations& allhits);
+    const Locations& allhits)
+{
+    const auto& fmt = opt.format;
+
+    if(!fmt.showMapping || !fmt.showUnmapped && cls.candidates.empty())
+        return;
+
+    const auto& colsep = fmt.tokens.column;
+
+    if(fmt.showQueryIds) os << query.id << colsep;
+
+    //print query header (first contiguous string only)
+    auto l = query.header.find(' ');
+    if(l != string::npos) {
+        auto oit = std::ostream_iterator<char>{os, ""};
+        std::copy(query.header.begin(), query.header.begin() + l, oit);
+    }
+    else {
+        os << query.header;
+    }
+    os << colsep;
+
+    if(opt.evaluate.showGroundTruth) {
+        show_target(os, db, opt.format, cls.groundTruth);
+        os << colsep;
+    }
+
+    if(opt.analysis.showAllHits) {
+        show_matches(os, db, allhits);
+        os << colsep;
+    }
+    
+    show_candidates(os, db, cls.candidates);
+    os << colsep;
+    
+    if(opt.analysis.showLocations) {
+        show_candidate_ranges(os, db, cls.candidates);
+        os << colsep;
+    }
+
+    os << '\n';
+}
 
 
 /*************************************************************************//**

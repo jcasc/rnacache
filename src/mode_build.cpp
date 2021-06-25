@@ -187,7 +187,7 @@ void add_targets_to_database(database& db,
 
 /*************************************************************************//**
  *
- * @brief prepares datbase for build
+ * @brief prepares database for build
  *
  *****************************************************************************/
 void prepare_database(database& db, const build_options& opt)
@@ -263,7 +263,7 @@ void post_process_features(database& db, const build_options& opt)
 
 /*************************************************************************//**
  *
- * @brief prepares datbase for build, adds targets and writes database to disk
+ * @brief prepares database for build, adds targets and writes database to disk
  *
  *****************************************************************************/
 void add_to_database(database& db, const build_options& opt)

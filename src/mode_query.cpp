@@ -55,9 +55,8 @@ void process_input_files(const vector<string>& infiles,
                          const database& db, const query_options& opt,
                          const string& queryMappingsFilename)
 {
-    std::ostream* perReadOut   = &cout;
-    std::ostream* alignmentOut = &cout;
-    std::ostream* status       = &cerr;
+    std::ostream* mainOut   = &cout;
+    std::ostream* samOut = &cout;
 
     std::ofstream mapFile;
     if(!queryMappingsFilename.empty()) {
@@ -65,17 +64,17 @@ void process_input_files(const vector<string>& infiles,
 
         if(mapFile.good()) {
             cerr << "Per-Read mappings will be written to file: " << queryMappingsFilename << '\n';
-            perReadOut = &mapFile;
+            mainOut = &mapFile;
         }
         else {
             throw file_write_error{"Could not write to file " + queryMappingsFilename};
         }
     }
 
-    classification_results results {*perReadOut,*alignmentOut,*status};
+    classification_results results {*mainOut,*samOut};
 
     if(opt.output.showQueryParams) {
-        show_query_parameters(results.perReadOut, opt);
+        show_query_parameters(results.mainOut, opt);
     }
 
     results.flush_all_streams();
@@ -84,8 +83,8 @@ void process_input_files(const vector<string>& infiles,
     map_queries_to_targets(infiles, db, opt, results);
     results.time.stop();
 
-    clear_current_line(results.status);
-    results.status.flush();
+    clear_current_line(cerr);
+    cerr.flush();
 
     if(opt.output.showSummary) show_summary(opt, results);
 

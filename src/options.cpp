@@ -651,8 +651,7 @@ classification_params_cli(classification_options& opt, error_messages& err)
     ,   
         option("-max-edit", "-max-edit-dist", "-max-edit-distance") &
         integer("t", opt.maxEditDist)
-            .if_missing([&]{ err += "Number missing after '-cov-min'!"; })
-
+            .if_missing([&]{ err += "Number missing after '-max-edit'!"; })
     ,   
         option("-no-cov-norm", "-no-norm-coverage").set(opt.covNorm, coverage_norm::none)
     ,
@@ -681,7 +680,7 @@ classification_output_format_cli(classification_output_formatting& opt,
               "default: "s + (opt.mapViewMode == map_view_mode::mapped_only ? "on" : "off"))
         )
         ,
-        option("-tgtids", "-tgtid").set(opt.targetStyle.showId)
+        option("-tgtids", "-tgtid", "-tgt-ids", "-tgt-id").set(opt.targetStyle.showId)
             %("Print target ids in addition to target names.\n"
               "default: "s + (opt.targetStyle.showId ? "on" : "off"))
         ,
@@ -706,11 +705,10 @@ classification_output_format_cli(classification_output_formatting& opt,
             %("Sets string that precedes comment (non-mapping) lines.\n"
               "default: '"s + opt.tokens.comment + "'")
         ,
-        option("-queryids", "-query-ids").set(opt.showQueryIds)
+        option("-queryids", "-query-ids", "-query-id", "-queryid").set(opt.showQueryIds)
             %("Show a unique id for each query.\n"
               "Note that in paired-end mode a query is a pair of two "
-              "read sequences. This option will always be activated if "
-              "option '-hits-per-seq' is given.\n"
+              "read sequences.\n"
               "default: "s + (opt.showQueryIds ? "on" : "off"))
     );
 }
@@ -730,9 +728,8 @@ classification_analysis_cli(classification_analysis_options& opt)
                 %("For each query, print all feature hits in database.\n"
                   "default: "s + (opt.showAllHits ? "on" : "off"))
             ,
-            option("-locations").set(opt.showLocations).set(opt.showTopHits)
+            option("-locations").set(opt.showLocations)
                 %("Show locations in candidate reference sequences.\n"
-                  "Activates option '-tophits'.\n"
                   "default: "s + (opt.showLocations ? "on" : "off"))
         )
     );
@@ -808,8 +805,7 @@ performance_options_cli(performance_tuning_options& opt, error_messages& err)
         integer("#", opt.queryLimit)
             .if_missing([&]{ err += "Number missing after '-query-limit'!"; })
     )
-        %("Classify at max. <#> queries (reads or read pairs) per input file. "
-          "and \n"
+        %("Classify at max. <#> queries (reads or read pairs) per input file.\n"
           "default: "s + (opt.queryLimit < 1 ? "none"s : to_string(opt.queryLimit))
     )
     );
@@ -925,9 +921,6 @@ query_mode_cli(query_options& opt, error_messages& err)
     option("-sam", "-SAM", "-edlib").set(opt.rnaMode, rna_mode::sam)
     ,
     option("-bam").set(opt.rnaMode, rna_mode::bam)
-    ,
-    option("-search").set(opt.rnaMode, rna_mode::search),
-    catch_unknown(err)
     );
 }
 

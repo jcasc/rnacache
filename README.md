@@ -38,12 +38,7 @@ To compile RNACache with support for the BAM output format, htslib is required, 
   make MACROS="-DMC_TARGET_ID_TYPE=uint32_t"
   ```
 
-* support for more than 4,294,967,295 reference sequences (needs more memory)
-  ```
-  make MACROS="-DMC_TARGET_ID_TYPE=uint64_t"
-  ```
-
-##### reference sequence lenghts
+##### reference sequence lengths
 
 * support for targets up to a length of 65,535 windows (default)
   with default settings (window length, k-mer size) no sequence length must exceed 7.4 million nucleotides
@@ -51,7 +46,7 @@ To compile RNACache with support for the BAM output format, htslib is required, 
   make MACROS="-DMC_WINDOW_ID_TYPE=uint16_t"
   ```
 
-* support for targets up to a length of 4,294,967,295 windows (nees more memory)
+* support for targets up to a length of 4,294,967,295 windows (needs more memory)
   with default settings (window length, k-mer size) no sequence length must exceed 485.3 billion nucleotides
   ```
   make MACROS="-DMC_WINDOW_ID_TYPE=uint32_t"

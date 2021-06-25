@@ -42,7 +42,7 @@ void show_query_parameters(std::ostream& os, const query_options& opt)
     const auto& fmt = opt.output.format;
     const auto& comment = fmt.tokens.comment;
 
-    if(fmt.mapViewMode != map_view_mode::none) {
+    if(fmt.showMapping) {
         os << comment << "Reporting per-read mappings (non-mapping lines start with '"
            << comment << "').\n";
     }
@@ -212,7 +212,7 @@ void show_statistics(std::ostream& os,
                      const rna_mapping_statistics& stats,
                      const std::string& prefix)
 {
-    os << prefix << '\n'
+    os << prefix << 'Mapping statistics:\n'
        << prefix << "Total Reads:         " << stats.total() << '\n'
        << prefix << "Total Matches:       " << stats.matches() << '\n'
        << prefix << "Origin Found:        " << stats.correct() << '\n'
@@ -236,19 +236,19 @@ void show_summary(const query_options& opt,
 {
     const auto& statistics = results.statistics;
     const auto numQueries = (opt.pairing == pairing_mode::none)
-                            ? statistics.total() : 2 * statistics.total();
+                            ? statistics.total() : statistics.total();
 
     const auto speed = numQueries / results.time.minutes();
     const auto& comment = opt.output.format.tokens.comment;
-    results.perReadOut
+    results.mainOut
         << comment << "queries: " << numQueries << '\n'
         << comment << "time:    " << results.time.milliseconds() << " ms\n"
         << comment << "speed:   " << speed << " queries/min\n";
 
     if(opt.output.evaluate.accuracy && statistics.total() > 0) {
-        show_statistics(results.perReadOut, statistics, comment);
+        show_statistics(results.mainOut, statistics, comment);
     } else {
-        results.status << comment << "No valid query sequences found.\n";
+        results.mainOut << comment << "No valid query sequences found.\n";
     }
 }
 

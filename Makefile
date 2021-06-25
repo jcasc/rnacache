@@ -101,7 +101,6 @@ HEADERS = \
           dep/edlib.h
 
 SOURCES = \
-          src/classify_common.cpp \
           src/classify_rna.cpp \
           src/cmdline_utility.cpp \
           src/database.cpp \
@@ -133,9 +132,6 @@ $(2):
 	mkdir $(2) 
     
 $(2)/classify_rna.o : src/classify_rna.cpp $(HEADERS) 
-	$(COMPILER) $(3) -c $$< -o $$@
-	
-$(2)/classify_common.o : src/classify_common.cpp $(HEADERS) 
 	$(COMPILER) $(3) -c $$< -o $$@
 	
 $(2)/cmdline_utility.o : src/cmdline_utility.cpp src/cmdline_utility.h 

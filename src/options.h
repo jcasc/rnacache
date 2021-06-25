@@ -182,22 +182,6 @@ enum class pairing_mode : unsigned char {
 
 
 /*************************************************************************//**
- * @brief alignment mode
- *****************************************************************************/
-enum class align_mode : unsigned char {
-    none, semi_global
-};
-
-
-/*************************************************************************//**
- * @brief how to show mapping
- *****************************************************************************/
-enum class map_view_mode : unsigned char {
-    none, mapped_only, all
-};
-
-
-/*************************************************************************//**
  *
  * @brief how target formatting will be done
  *
@@ -253,6 +237,9 @@ struct classification_options
     double covMin = 0.9;
     coverage_norm covNorm = coverage_norm::max;
     coverage_fill covFill = coverage_fill::matches;
+
+    // alignment mode
+    bool align = false;
     int maxEditDist = -1;
 
 };
@@ -308,7 +295,8 @@ struct formatting_tokens {
 struct classification_output_formatting
 {
     //how to show classification (read mappings), if 'none', only summary will be shown
-    map_view_mode mapViewMode = map_view_mode::all;
+    bool showMapping = true; // show default mapping format
+    bool showUnmapped = true; // show unmapped (used in default and SAM/BAM format)
 
     bool showQueryIds = false;
 
@@ -325,16 +313,19 @@ struct classification_output_formatting
  *****************************************************************************/
 struct classification_analysis_options
 {
-    //show top candidate sequences and their associated k-mer hash hit count
-    bool showTopHits = true;
-
     //show all k-mer-hash hits in database for each given read
     bool showAllHits = false;
     //show candidate position(s) in reference sequence(s)
     bool showLocations = false;
-
 };
 
+enum class sam_mode {
+    none,
+    sam
+    #ifdef RC_BAM
+    ,bam
+    #endif
+};
 
 /*************************************************************************//**
  *
@@ -352,16 +343,11 @@ struct classification_output_options
     bool showSummary = true;
     bool showDBproperties = false;
     bool showErrors = true;
+
+    //  SAM / BAM output
+    sam_mode samMode = sam_mode::none;
 };
 
-
-enum class rna_mode {
-    map,
-    sam,
-    bam,
-    sam_align,
-    search
-};
 
 /*************************************************************************//**
  *
@@ -390,8 +376,6 @@ struct query_options
 
     classification_options classify;
     classification_output_options output;
-
-    rna_mode rnaMode = rna_mode::map;
 
 };
 
