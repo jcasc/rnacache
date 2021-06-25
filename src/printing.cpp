@@ -30,7 +30,7 @@
 #include "matches_per_target.h"
 #include "stat_confusion.h"
 #include "options.h"
-
+#include "classify_common.h"
 #include "printing.h"
 
 
@@ -212,7 +212,7 @@ void show_statistics(std::ostream& os,
                      const rna_mapping_statistics& stats,
                      const std::string& prefix)
 {
-    os << prefix << 'Mapping statistics:\n'
+    os << prefix << "Mapping statistics:\n"
        << prefix << "Total Reads:         " << stats.total() << '\n'
        << prefix << "Total Matches:       " << stats.matches() << '\n'
        << prefix << "Origin Found:        " << stats.correct() << '\n'
@@ -236,7 +236,7 @@ void show_summary(const query_options& opt,
 {
     const auto& statistics = results.statistics;
     const auto numQueries = (opt.pairing == pairing_mode::none)
-                            ? statistics.total() : statistics.total();
+                            ? statistics.total() : 2 * statistics.total();
 
     const auto speed = numQueries / results.time.minutes();
     const auto& comment = opt.output.format.tokens.comment;
@@ -245,7 +245,7 @@ void show_summary(const query_options& opt,
         << comment << "time:    " << results.time.milliseconds() << " ms\n"
         << comment << "speed:   " << speed << " queries/min\n";
 
-    if(opt.output.evaluate.accuracy && statistics.total() > 0) {
+    if(opt.output.evaluate.statistics && statistics.total() > 0) {
         show_statistics(results.mainOut, statistics, comment);
     } else {
         results.mainOut << comment << "No valid query sequences found.\n";

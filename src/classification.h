@@ -53,22 +53,6 @@ void map_queries_to_targets(
     const database&, const query_options&,
     classification_results&);
 
-
-
-/*************************************************************************//**
- *
- * @brief needed for 'merge' mode: try to map candidates to a target
- *        according to the query options
- *
- *****************************************************************************/
-void map_candidates_to_targets(
-    const std::vector<std::string>& queryHeaders,
-    const std::vector<classification_candidates>&,
-    const database&, const query_options&,
-    classification_results&);
-
-
-
 } // namespace mc
 
 #endif

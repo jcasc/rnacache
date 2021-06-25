@@ -88,6 +88,8 @@ struct database_storage_options
     // restrict number of targets per features
     bool removeAmbigFeatures = false;
     int maxTaxaPerFeature = 1;
+
+    bool rereadTargets = false;
 };
 
 
@@ -255,8 +257,8 @@ struct classification_evaluation_options
     //show ground thruth if available
     bool showGroundTruth = false;
 
-    //test accuracy (ground truth must be available)
-    bool accuracy = false;
+    //show (accuracy) statistics
+    bool statistics = false;
 
     //show known target
     bool determineGroundTruth = false;
@@ -366,6 +368,7 @@ struct query_options
     bool splitOutputPerInput = false;
     // output filename for mappings per read
     std::string queryMappingsFile;
+    std::string samFile;
 
     database_storage_options dbconfig;
 

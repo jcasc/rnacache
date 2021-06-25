@@ -36,6 +36,7 @@
 #include "sequence_view.h"
 #include "timer.h"
 #include "querying.h"
+#include "printing.h"
 
 #ifdef RC_BAM
 #include "sam.h"
@@ -165,7 +166,7 @@ void show_query_mapping(
 {
     const auto& fmt = opt.format;
 
-    if(!fmt.showMapping || !fmt.showUnmapped && cls.candidates.empty())
+    if(!fmt.showMapping || (!fmt.showUnmapped && cls.candidates.empty()))
         return;
 
     const auto& colsep = fmt.tokens.column;
@@ -174,7 +175,7 @@ void show_query_mapping(
 
     //print query header (first contiguous string only)
     auto l = query.header.find(' ');
-    if(l != string::npos) {
+    if(l != std::string::npos) {
         auto oit = std::ostream_iterator<char>{os, ""};
         std::copy(query.header.begin(), query.header.begin() + l, oit);
     }

@@ -27,7 +27,7 @@
 #include <iosfwd>
 
 #include "config.h"
-#include "classify_common.h"
+// #include "classify_common.h"
 #include "classification_statistics.h"
 #include "matches_per_target.h"
 
@@ -37,6 +37,7 @@ namespace mc {
 // forward declaration
 class database;
 class classification_output_formatting;
+class classification_results;
 
 
 /*************************************************************************//**
@@ -55,7 +56,7 @@ void show_query_parameters(std::ostream&, const query_options&);
 void show_target(std::ostream&,
                 const database&,
                 const classification_output_formatting&,
-                target_id classified);
+                target_id);
 
 
 /*************************************************************************//**

@@ -30,6 +30,7 @@
 #include "cmdline_utility.h"
 #include "filesys_utility.h"
 #include "classification.h"
+#include "classify_common.h"
 #include "classification_statistics.h"
 #include "printing.h"
 #include "config.h"
@@ -53,10 +54,11 @@ using std::flush;
  *****************************************************************************/
 void process_input_files(const vector<string>& infiles,
                          const database& db, const query_options& opt,
-                         const string& queryMappingsFilename)
+                         const string& queryMappingsFilename,
+                         const string& samFilename)
 {
     std::ostream* mainOut   = &cout;
-    std::ostream* samOut = &cout;
+    std::ostream* samOut    = &cout;
 
     std::ofstream mapFile;
     if(!queryMappingsFilename.empty()) {
@@ -69,6 +71,21 @@ void process_input_files(const vector<string>& infiles,
         else {
             throw file_write_error{"Could not write to file " + queryMappingsFilename};
         }
+    }
+
+    std::ofstream samFile;
+    if(!samFilename.empty()) {
+        samFile.open(samFilename, std::ios::out);
+
+        if(samFile.good()) {
+            cerr << "SAM/BAM will be written to file: " << samFilename << '\n';
+            samOut = &samFile;
+        }
+        else {
+            throw file_write_error{"Could not write to file " + samFilename};
+        }
+    } else {
+        samOut = mainOut;
     }
 
     classification_results results {*mainOut,*samOut};
@@ -118,41 +135,8 @@ void process_input_files(const database& db,
         }
     }
 
-    //process files / file pairs separately
+    process_input_files(infiles, db, opt, opt.queryMappingsFile, opt.samFile);
 
-    if(opt.splitOutputPerInput) {
-        string queryMappingsFile;
-        //process each input file pair separately
-        if(opt.pairing == pairing_mode::files && infiles.size() > 1) {
-            for(std::size_t i = 0; i < infiles.size(); i += 2) {
-                const auto& f1 = infiles[i];
-                const auto& f2 = infiles[i+1];
-                if(!opt.queryMappingsFile.empty()) {
-                    queryMappingsFile = opt.queryMappingsFile
-                            + "_" + extract_filename(f1)
-                            + "_" + extract_filename(f2)
-                            + ".txt";
-                }
-                process_input_files(vector<string>{f1,f2}, db, opt,
-                    queryMappingsFile);
-            }
-        }
-        //process each input file separately
-        else {
-            for(const auto& f : infiles) {
-                if(!opt.queryMappingsFile.empty()) {
-                    queryMappingsFile = opt.queryMappingsFile + "_"
-                            + extract_filename(f) + ".txt";
-                }
-                process_input_files(vector<string>{f}, db, opt,
-                    queryMappingsFile);
-            }
-        }
-    }
-    //process all input files at once
-    else {
-        process_input_files(infiles, db, opt, opt.queryMappingsFile);
-    }
 }
 
 
@@ -244,7 +228,10 @@ read_database(const string& filename,
     cerr << "Reading database from file '" << filename << "' ... " << flush;
 
     try {
-        db.read(filename);
+        if (dbopt.rereadTargets)
+            db.read(filename, database::scope::everything);
+        else
+            db.read(filename);
         cerr << "done.\n";
     }
     catch(const file_access_error& e) {

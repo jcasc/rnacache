@@ -649,7 +649,7 @@ classification_params_cli(classification_options& opt, error_messages& err)
             .if_missing([&]{ err += "Number missing after '-cov-min'!"; })
 
     ,   
-        option("-max-edit", "-max-edit-dist", "-max-edit-distance") &
+        option("-max-edit", "-max-edit-dist", "-max-edit-distance").set(opt.align) &
         integer("t", opt.maxEditDist)
             .if_missing([&]{ err += "Number missing after '-max-edit'!"; })
     ,   
@@ -669,16 +669,14 @@ classification_output_format_cli(classification_output_formatting& opt,
 {
     using namespace clipp;
     return (
-        one_of(
-            option("-no-map", "-nomap").set(opt.mapViewMode, map_view_mode::none)
-            %("Don't report classification for each individual query "
-              "sequence; show summaries only (useful for quick tests).\n"
-              "default: "s + (opt.mapViewMode == map_view_mode::none ? "on" : "off"))
-            ,
-            option("-mapped-only", "-mappedonly").set(opt.mapViewMode, map_view_mode::mapped_only)
-            %("Don't list unclassified reads/read pairs.\n"
-              "default: "s + (opt.mapViewMode == map_view_mode::mapped_only ? "on" : "off"))
-        )
+        option("-no-default", "-no-map", "-nomap").set(opt.showMapping, false)
+        %("Don't show default mapping output for each individual query. "
+          "show summaries and / or alternative output (SAM/BAM).\n"
+          "default: "s + (!opt.showMapping ? "on" : "off"))
+        ,
+        option("-mapped-only", "-mappedonly").set(opt.showUnmapped, false)
+        %("Don't list unclassified reads/read pairs.\n"
+            "default: "s + (!opt.showUnmapped ? "on" : "off"))
         ,
         option("-tgtids", "-tgtid", "-tgt-ids", "-tgt-id").set(opt.targetStyle.showId)
             %("Print target ids in addition to target names.\n"
@@ -754,14 +752,20 @@ classification_evaluation_cli(classification_evaluation_options& opt,
               "This feature decreases querying speed!\n"
               "default: "s + (opt.determineGroundTruth ? "on" : "off"))
         ,
-        option("-accuracy").set(opt.accuracy).set(opt.determineGroundTruth)
-            %("Report accuracy stats "
+        option("-statistics").set(opt.statistics)
+            %("Report mapping statistics "
+              "such as number of hits per read. "
+              "See: -accuracy for more stats.\n"
+              "default: "s + (opt.statistics ? "on" : "off"))
+        ,
+        option("-accuracy").set(opt.statistics).set(opt.determineGroundTruth)
+            %("Report accuracy statistics "
               "by comparing query origins (ground truth) and mappings.\n"
               "Queries need to have either a 'tgtid|<number>' entry in "
               "their header or a sequence id that is also found in "
-              "the database.\n"
+              "the database. Equivalent to -ground-truth -statistics\n"
               "This feature might decrease querying speed!\n"
-              "default: "s + (opt.accuracy ? "on" : "off"))
+              "default: "s + (opt.statistics ? "on" : "off"))
     );
 }
 
@@ -837,24 +841,37 @@ query_mode_cli(query_options& opt, error_messages& err)
               "query options. "
     ),
     "MAPPING RESULTS OUTPUT" %
+    (   option("-out") &
+        value("file", opt.queryMappingsFile)
+            .if_missing([&]{ err += "Output filename missing after '-out'!"; })
+    )
+        % "Redirect output to file <file>.\n"
+          "If not specified, output will be written to stdout. "
+          "If more than one input file was given all output "
+          "will be concatenated into one file."
+    ,
     one_of(
-        (   option("-out") &
-            value("file", opt.queryMappingsFile)
-                .if_missing([&]{ err += "Output filename missing after '-out'!"; })
-        )
-            % "Redirect output to file <file>.\n"
-              "If not specified, output will be written to stdout. "
-              "If more than one input file was given all output "
-              "will be concatenated into one file."
+        option("-sam").set(opt.output.samMode, sam_mode::sam).set(opt.output.showQueryParams, false)
+                    .set(opt.output.showSummary, false).set(opt.output.format.showMapping, false)
+                    .set(opt.output.evaluate.statistics, false)
+                    .set(opt.output.evaluate.determineGroundTruth, false)
+        %("Generate output in SAM format instead of RNACache's default format. ")
         ,
-        (   option("-split-out", "-splitout").set(opt.splitOutputPerInput) &
-            value("file", opt.queryMappingsFile)
-                .if_missing([&]{ err += "Output filename missing after '-split-out'!"; })
-        )
-            % "Generate output and statistics for each input file "
-              "separately. For each input file <in> an output file "
-              "with name <file>_<in> will be written."
-    ),
+        option("-with-sam-out").set(opt.output.samMode, sam_mode::sam) &
+        value("file", opt.samFile)
+            .if_missing([&]{ err += "Output filename missing after '-with-sam-out'!"; })
+        %("Generates SAM format output in addition to default output. "
+          "Output is redirected to <file>.")
+        #ifdef RC_BAM
+        ,
+        option("-with-bam-out").set(opt.output.samMode, sam_mode::bam) &
+        value("file", opt.samFile)
+            .if_missing([&]{ err += "Output filename missing after '-with-bam-out'!"; })
+        %("Generates BAM format output in addition to default output. "
+          "Output is redirected to <file>.")
+        #endif
+    )
+    ,
     "PAIRED-END READ HANDLING" %
     (   one_of(
             option("-pairfiles", "-pair-files", "-paired-files")
@@ -917,10 +934,6 @@ query_mode_cli(query_options& opt, error_messages& err)
     ,
     "ADVANCED: PERFORMANCE TUNING / TESTING" %
         performance_options_cli(opt.performance, err)
-    ,
-    option("-sam", "-SAM", "-edlib").set(opt.rnaMode, rna_mode::sam)
-    ,
-    option("-bam").set(opt.rnaMode, rna_mode::bam)
     );
 }
 
@@ -968,19 +981,14 @@ get_query_options(const cmdline_args& args, query_options opt)
     if(perf.queryLimit < 0) perf.queryLimit = 0;
 
     #ifdef RC_BAM
-    if (opt.rnaMode==rna_mode::bam)
+    if (opt.output.samMode == sam_mode::bam)
         perf.bamBufSize = 1 << perf.bamBufSize;
     else
         perf.bamBufSize = 1;
     #endif
 
-
-    // SAM output must be free of other content
-    if (opt.rnaMode==rna_mode::sam && opt.queryMappingsFile.empty()) {
-        opt.output.showQueryParams = false;
-        opt.output.format.mapViewMode = map_view_mode::none;
-        opt.output.showSummary = false;
-    }
+    if (opt.classify.align || opt.output.samMode != sam_mode::none)
+        opt.dbconfig.rereadTargets = true;
 
     return opt;
 }

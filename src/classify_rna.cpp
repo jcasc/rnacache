@@ -285,7 +285,7 @@ void evaluate_classification(
     classification& cls,
     rna_mapping_statistics& statistics)
 {
-    if (opt.accuracy) {
+    if (opt.determineGroundTruth) {
         if (cls.groundTruth == database::nulltgt) {
             if (cls.candidates.empty()) {
                 return statistics.mapped_noise();
@@ -297,10 +297,8 @@ void evaluate_classification(
                 }
             }
         }
-        return statistics.mapped(cls.candidates.size());
-    } else {
-        return statistics.mapped();
     }
+    return statistics.mapped(cls.candidates.size());
 }
 
 #ifdef RC_BAM
@@ -381,7 +379,7 @@ struct edlib_alignment {
     enum struct status {FORWARD, REVERSE, UNALIGNED};
 
     edlib_alignment(const std::string& query, target_id tgt, const database& db, int max_edit_distance):
-        tgt_(tgt), status_(status::UNALIGNED), cigar_(nullptr), score_(query.size())
+        tgt_(tgt), status_(status::UNALIGNED), score_(query.size()), cigar_(nullptr)
     {
         const std::string& target = db.get_target(tgt).seq();
 
@@ -474,7 +472,7 @@ void show_sam_minimal(std::ostream& os, const target& tgt, const sequence_query&
     std::string qname = query.header.substr(0, query.header.size() - 2);
     size_t tgtlen = tgt.seq().size();
     size_t readlen = query.seq1.size();
-    size_t tlen = std::min(tgtlen, readlen);
+    int64_t tlen = std::min(tgtlen, readlen);
 
     uint16_t flag1 = 0, flag2 = 0;
     
@@ -621,7 +619,7 @@ void show_sam_alignment(std::ostream& os,
         flag2 |= 0x100;
     }
 
-    int tlen = 0;
+    int64_t tlen = 0;
     if (alignment.first.aligned() && alignment.second.aligned()) 
     {
         tlen = std::max(alignment.first.end(), alignment.second.end())
@@ -659,7 +657,7 @@ void show_sam_alignment(std::ostream& os,
     os << (alignment.first.start() <= alignment.second.start() ? tlen: -tlen) << '\t';
 
     // SEQ
-    os << query.seq1 << '\t';
+    os << (alignment.first.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq1) : query.seq1) << '\t';
 
     // QUAL
     os << "*" << '\t';
@@ -697,7 +695,7 @@ void show_sam_alignment(std::ostream& os,
     os << (alignment.second.start() < alignment.first.start() ? tlen: -tlen) << '\t';
 
     // SEQ
-    os << query.seq2 << '\t';
+    os << (alignment.second.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq2) : query.seq2) << '\t';
 
     // QUAL
     os << "*" << '\t';
@@ -706,13 +704,12 @@ void show_sam_alignment(std::ostream& os,
 }
 
 #ifdef RC_BAM
-void show_bam_alignment(bam_buffer& bam_buf, const database& db, const sequence_query& query, const edlib_alignment_pair& alignment, bool primary) {
+void show_bam_alignment(bam_buffer& bam_buf, const sequence_query& query, const edlib_alignment_pair& alignment, bool primary) {
 
     // function only applicable for mapped reads atm
     // function only applicable for paired reads atm
 
     target_id tgt_id = alignment.tgt();
-    const target& tgt = db.get_target(tgt_id);
 
     uint16_t flag1 = BAM_FPAIRED | BAM_FREAD1;
     uint16_t flag2 = BAM_FPAIRED | BAM_FREAD2;
@@ -720,6 +717,14 @@ void show_bam_alignment(bam_buffer& bam_buf, const database& db, const sequence_
     if (!primary) {
         flag1 |= BAM_FSECONDARY;
         flag2 |= BAM_FSECONDARY;
+    }
+    if (!alignment.first.aligned()) {
+        flag1 |= BAM_FUNMAP;
+        flag2 |= BAM_FMUNMAP;
+    }
+    if (!alignment.second.aligned()) {
+        flag1 |= BAM_FMUNMAP;
+        flag2 |= BAM_FUNMAP;
     }
     if (alignment.first.aligned() && alignment.second.aligned()) {
         flag1 |= BAM_FPROPER_PAIR;
@@ -731,16 +736,16 @@ void show_bam_alignment(bam_buffer& bam_buf, const database& db, const sequence_
     }
     if (alignment.second.orientation() == edlib_alignment::status::REVERSE) {
         flag1 |= BAM_FMREVERSE;
-        flag2 |= BAM_FMREVERSE;
+        flag2 |= BAM_FREVERSE;
     }
 
-    size_t tlen1 = 0;
+    int64_t tlen1 = 0;
     if (alignment.first.aligned() && alignment.second.aligned())
     {
         tlen1 = std::max(alignment.first.end(), alignment.second.end())
              - std::min(alignment.first.start(), alignment.second.start()) + 1;
     }
-    size_t tlen2 = tlen1;
+    int64_t tlen2 = tlen1;
     if (alignment.first.start() <= alignment.second.start())
         tlen2 = -tlen2;
     else
@@ -749,17 +754,29 @@ void show_bam_alignment(bam_buffer& bam_buf, const database& db, const sequence_
     size_t pos1 = (alignment.first.aligned() ? alignment.first.start() : alignment.second.start());
     size_t pos2 = (alignment.second.aligned() ? alignment.second.start() : alignment.first.start());
 
+    size_t clen1 = 0, clen2 = 0;
+    uint32_t *cig1 = nullptr, *cig2 = nullptr;
+    
+    if (alignment.first.aligned())
+        sam_parse_cigar(alignment.first.cigar(), nullptr, &cig1, &clen1);
+    
+    if (alignment.second.aligned())
+        sam_parse_cigar(alignment.second.cigar(), nullptr, &cig2, &clen2);
 
     // mate 1
-    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag1, tgt_id, pos1, 255, 0, nullptr,
-             tgt_id, pos2, tlen1, query.seq1.size(), query.seq1.data(), nullptr, 0);
+    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag1, tgt_id, pos1, 255, clen1, cig1,
+             tgt_id, pos2, tlen1, query.seq1.size(),
+             (alignment.first.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq1) : query.seq1).data(),
+             nullptr, 0);
     
     // mate 2
-    std::string recv2 = query.seq2; //TODO CHECK THE REVERSE ISSUE (ALSO IN SAM FUNCTION)
-    reverse_complement(recv2);
+    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag2, tgt_id, pos2, 255, clen2, cig2,
+             tgt_id, pos1, tlen2, query.seq2.size(),
+             (alignment.second.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq2) : query.seq2).data(),
+             nullptr, 0);
 
-    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag2, tgt_id, pos2, 255, 0, nullptr,
-             tgt_id, pos1, tlen2, query.seq2.size(), recv2.data(), nullptr, 0);
+    free(cig1);
+    free(cig2);
 }
 #endif
 
@@ -773,7 +790,7 @@ void show_bam_minimal(bam_buffer& bam_buf, const database& db, const sequence_qu
 
     size_t l_tgt = db.get_target(tgt).seq().size();
     size_t l_read = query.seq1.size();
-    size_t l_template = std::min(l_tgt, l_read);
+    int64_t l_template = std::min(l_tgt, l_read);
 
     uint16_t flag1 = BAM_FPAIRED | BAM_FPROPER_PAIR | BAM_FMREVERSE | BAM_FREAD1 | ((!primary)*BAM_FSECONDARY);
     uint16_t flag2 = BAM_FPAIRED | BAM_FPROPER_PAIR | BAM_FREVERSE | BAM_FREAD2 | ((!primary)*BAM_FSECONDARY);
@@ -800,12 +817,12 @@ void show_bam_minimal(bam_buffer& bam_buf, const database& db, const sequence_qu
 #endif
 
 #ifdef RC_BAM
-void prepare_bam(const database& db, int threads, samFile*& bf, sam_hdr_t*& hdr) {
+void prepare_bam(const database& db, const query_options& opt, classification_results& results) {
     std::string sam_header_text = db.get_sam_header();
-    bf = sam_open("mc_debug.bam", "wb1");
-    hts_set_threads(bf, threads);
-    hdr = sam_hdr_parse(sam_header_text.size(), sam_header_text.data());
-    sam_hdr_write(bf, hdr);
+    results.bamOut = sam_open(opt.samFile.data(), "wb1");
+    hts_set_threads(results.bamOut, opt.performance.bamThreads);
+    results.bamHdr = sam_hdr_parse(sam_header_text.size(), sam_header_text.data());
+    sam_hdr_write(results.bamOut, results.bamHdr);
     // TODO handle errors
 }
 #endif
@@ -864,7 +881,7 @@ void align_candidates(mappings_buffer& buf, const database& db,
     #ifdef RC_BAM
     else if (opt.output.samMode == sam_mode::bam)
         for (size_t i = 0; i < alns.size(); ++i) //TODO allow showing of unmapped in SAM / BAM
-            show_bam_alignment(buf.bam_buf, db, query, alns[i], i == primary);
+            show_bam_alignment(buf.bam_buf, query, alns[i], i == primary);
     #endif
 }
 
@@ -907,15 +924,12 @@ void map_queries_to_targets_2pass(
                    makeCovBuffer, processCoverage, mergeCoverage,
                    appendToOutput);
     
-
-    #ifdef RC_BAM
-    if (opt.output.samMode == sam_mode::bam)
-        prepare_bam(db, opt.performance.bamThreads, results.bamOut, results.bamHdr);
-    else
-    #endif
-
     if (opt.output.samMode == sam_mode::sam)
         db.show_sam_header(results.samOut);
+    #ifdef RC_BAM
+    else if (opt.output.samMode == sam_mode::bam)
+        prepare_bam(db, opt, results);
+    #endif
 
     const auto makeBatchBuffer = [&] {
         #ifdef RC_BAM
@@ -937,13 +951,13 @@ void map_queries_to_targets_2pass(
             cls.groundTruth = ground_truth_target(db, query.header);
 
         if (opt.classify.align)
-            align_candidates(buf.align_out, db, opt, query, cls) // removes unalignable candidates
+            align_candidates(buf, db, opt, query, cls.candidates); // removes unalignable candidates
         else
-            show_as_alignment();
+            show_as_alignment(buf, db, opt, query, cls.candidates);
 
         show_query_mapping(buf.out, db, opt.output, query, cls, allhits);
             
-        evaluate_classification(db, cls, results.statistics);
+        evaluate_classification(opt.output.evaluate, cls, results.statistics);
     };
 
     const auto finalizeBatch = [&] (mappings_buffer&& buf) {
