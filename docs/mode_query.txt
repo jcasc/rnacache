@@ -30,17 +30,22 @@ BASIC PARAMETERS
                       multiple times with different query options. 
 
 
-MAPPING RESULTS OUTPUT
-
-    -out <file>       Redirect output to file <file>.
+-out <file>           Redirect output to file <file>.
                       If not specified, output will be written to stdout. If
                       more than one input file was given all output will be
                       concatenated into one file.
 
 
-    -split-out <file> Generate output and statistics for each input file
-                      separately. For each input file <in> an output file with
-                      name <file>_<in> will be written.
+-sam                  Generate output in SAM format instead of RNACache's
+                      default format. 
+
+
+<file>                Generates SAM format output in addition to default output.
+                      Output is redirected to <file>.
+
+
+<file>                Generates BAM format output in addition to default output.
+                      Output is redirected to <file>.
 
 
 PAIRED-END READ HANDLING
@@ -99,8 +104,9 @@ GENERAL OUTPUT FORMATTING
 
 CLASSIFICATION RESULT FORMATTING
 
-    -no-map           Don't report classification for each individual query
-                      sequence; show summaries only (useful for quick tests).
+    -no-default       Don't show default mapping output for each individual
+                      query. show summaries and / or alternative output
+                      (SAM/BAM).
                       default: off
 
     -mapped-only      Don't list unclassified reads/read pairs.
@@ -120,8 +126,7 @@ CLASSIFICATION RESULT FORMATTING
 
     -queryids         Show a unique id for each query.
                       Note that in paired-end mode a query is a pair of two read
-                      sequences. This option will always be activated if option
-                      '-hits-per-seq' is given.
+                      sequences.
                       default: off
 
 
@@ -131,7 +136,6 @@ ANALYSIS: RAW DATABASE HITS
                       default: off
 
     -locations        Show locations in candidate reference sequences.
-                      Activates option '-tophits'.
                       default: off
 
 
@@ -144,11 +148,15 @@ ADVANCED: GROUND TRUTH BASED EVALUATION
                       This feature decreases querying speed!
                       default: off
 
-    -accuracy         Report accuracy stats by comparing query origins (ground
-                      truth) and mappings.
+    -statistics       Report mapping statistics such as number of hits per read.
+                      See: -accuracy for more stats.
+                      default: off
+
+    -accuracy         Report accuracy statistics by comparing query origins
+                      (ground truth) and mappings.
                       Queries need to have either a 'tgtid|<number>' entry in
                       their header or a sequence id that is also found in the
-                      database.
+                      database. Equivalent to -ground-truth -statistics
                       This feature might decrease querying speed!
                       default: off
 
@@ -213,7 +221,7 @@ ADVANCED: PERFORMANCE TUNING / TESTING
                       default (on this machine): 4096
 
     -query-limit <#>  Classify at max. <#> queries (reads or read pairs) per
-                      input file. and 
+                      input file.
                       default: 9223372036854775807
 
 

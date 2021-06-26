@@ -657,7 +657,10 @@ void show_sam_alignment(std::ostream& os,
     os << (alignment.first.start() <= alignment.second.start() ? tlen: -tlen) << '\t';
 
     // SEQ
-    os << (alignment.first.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq1) : query.seq1) << '\t';
+    if (alignment.first.orientation() == edlib_alignment::status::REVERSE)
+        os << make_reverse_complement(query.seq1) << '\t';
+    else
+        os << query.seq1 << '\t';
 
     // QUAL
     os << "*" << '\t';
@@ -695,7 +698,10 @@ void show_sam_alignment(std::ostream& os,
     os << (alignment.second.start() < alignment.first.start() ? tlen: -tlen) << '\t';
 
     // SEQ
-    os << (alignment.second.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq2) : query.seq2) << '\t';
+    if (alignment.second.orientation() == edlib_alignment::status::REVERSE)
+        os << make_reverse_complement(query.seq2) << '\t';
+    else
+        os << query.seq2 << '\t';
 
     // QUAL
     os << "*" << '\t';
@@ -754,29 +760,33 @@ void show_bam_alignment(bam_buffer& bam_buf, const sequence_query& query, const 
     size_t pos1 = (alignment.first.aligned() ? alignment.first.start() : alignment.second.start());
     size_t pos2 = (alignment.second.aligned() ? alignment.second.start() : alignment.first.start());
 
-    size_t clen1 = 0, clen2 = 0;
-    uint32_t *cig1 = nullptr, *cig2 = nullptr;
+    size_t l_cigar = 0;
+    uint32_t *cigar = nullptr;
+    const char* seq = query.seq1.data();
+    string rcseq;
     
     if (alignment.first.aligned())
-        sam_parse_cigar(alignment.first.cigar(), nullptr, &cig1, &clen1);
+        sam_parse_cigar(alignment.first.cigar(), nullptr, &cigar, &l_cigar);
     
-    if (alignment.second.aligned())
-        sam_parse_cigar(alignment.second.cigar(), nullptr, &cig2, &clen2);
+    if (alignment.first.orientation() == edlib_alignment::status::REVERSE)
+        seq = (rcseq = make_reverse_complement(query.seq1)).data();
 
     // mate 1
-    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag1, tgt_id, pos1, 255, clen1, cig1,
-             tgt_id, pos2, tlen1, query.seq1.size(),
-             (alignment.first.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq1) : query.seq1).data(),
-             nullptr, 0);
+    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag1, tgt_id, pos1, 255, l_cigar, cigar,
+                    tgt_id, pos2, tlen1, query.seq1.size(), seq, nullptr, 0);
+
+    if (alignment.second.aligned())
+        sam_parse_cigar(alignment.second.cigar(), nullptr, &cigar, &l_cigar);
+    
+    seq = query.seq2.data();
+    if (alignment.second.orientation() == edlib_alignment::status::REVERSE)
+        seq = (rcseq = make_reverse_complement(query.seq2)).data();
     
     // mate 2
-    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag2, tgt_id, pos2, 255, clen2, cig2,
-             tgt_id, pos1, tlen2, query.seq2.size(),
-             (alignment.second.orientation() == edlib_alignment::status::REVERSE ? make_reverse_complement(query.seq2) : query.seq2).data(),
-             nullptr, 0);
+    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag2, tgt_id, pos2, 255, l_cigar, cigar,
+                    tgt_id, pos1, tlen2, query.seq2.size(), seq, nullptr, 0);
 
-    free(cig1);
-    free(cig2);
+    free(cigar);
 }
 #endif
 
