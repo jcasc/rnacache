@@ -618,10 +618,9 @@ classification_params_cli(classification_options& opt, error_messages& err)
         integer("t", opt.hitsMin)
             .if_missing([&]{ err += "Number missing after '-hitmin'!"; })
     )
-        %("Sets classification threshhold 't^min' to <t>.\n"
+        %("Sets classification threshold 't^min' to <t>.\n"
           "All candidates with fewer hits are discarded "
-          "from the query's candidate set. Higher values will increase "
-          "precision at the expense of recall.\n"
+          "from the query's candidate set.\n"
           "default: "s + to_string(opt.hitsMin))
     ,
     (   option("-maxcand", "-max-cand") &
@@ -630,7 +629,7 @@ classification_params_cli(classification_options& opt, error_messages& err)
     )
         %(std::is_same<classification_candidates, distinct_matches_in_contiguous_window_ranges>() ?
             "Has no effect. (Requires selection of best_distinct_matches_... candidate generator in config.h)." :
-            "Maximum number of candidates to consider (before filtering!)."
+            "Maximum number of candidates to consider (before filtering!).\n"
             "default: "s + to_string(opt.maxNumCandidatesPerQuery))
     ,
     ( 
@@ -640,22 +639,45 @@ classification_params_cli(classification_options& opt, error_messages& err)
     )
         %("Sets classification threshhold 't^cutoff' to <t>.\n"
           "All candidates with fewer hits (relative to the maximal candidate) "
-          "are discarded from the query's candidate set. Higher values will increase "
-          "precision at the expense of recall.\n"
+          "are discarded from the query's candidate set.\n"
           "default: "s + to_string(opt.hitsCutoff))
     ,   
+    (
         option("-cov-min", "-covmin", "-coverage-min", "-coveragemin", "-coverage") &
         number("p", opt.covMin)
             .if_missing([&]{ err += "Number missing after '-cov-min'!"; })
+    )
+        %("Sets classification coverage threshold 't^cov' to <t>\n"
+          "Candidates on targets with lower coverage will be discarded.\n"
+          "default: "s + to_string(opt.covMin))
 
     ,   
+        option("-align").set(opt.align)
+        %("Enables post-mapping alignment step and filters candidates accordingly. "
+          "Candidates are only aligned during mapping phase, not during coverage phase. "
+          "Alignments are only shown in SAM / BAM output modes.\n" 
+          "DRASTICALLY increases runtime!\n"
+          "default: "s + to_string(opt.maxEditDist))
+    ,   
+    (
         option("-max-edit", "-max-edit-dist", "-max-edit-distance").set(opt.align) &
         integer("t", opt.maxEditDist)
             .if_missing([&]{ err += "Number missing after '-max-edit'!"; })
+    )
+        %("Maximum allowed edit distance of alignments (enables -align). "
+          "Alignments with higher edit distance will not be considered. "
+          "Higher values drastically increase runtime! "
+          "-1 = unlimited\n"
+          "default: "s + to_string(opt.maxEditDist))
     ,   
         option("-no-cov-norm", "-no-norm-coverage").set(opt.covNorm, coverage_norm::none)
+        %("Disable max norm of coverage statistic.\n"
+          "default: "s + (opt.covNorm == coverage_norm::none ? "enabled" : "disabled"))
     ,
         option("-fill-coverage", "-fill-in-coverage").set(opt.covFill, coverage_fill::fill)
+        %("Include caps in candidates' contiguous window ranges in coverage. "
+          "Waves 2nd coverage condition (see paper).\n"
+          "default: "s + (opt.covFill == coverage_fill::fill ? "enabled" : "disabled"))
     );
 }
 
@@ -782,14 +804,18 @@ performance_options_cli(performance_tuning_options& opt, error_messages& err)
         integer("#", opt.numThreads)
             .if_missing([&]{ err += "Number missing after '-threads'!"; })
     )
-        %("Sets the maximum number of parallel threads to use."
+        %("Sets the maximum number of parallel threads to use.\n"
           "default (on this machine): "s + to_string(opt.numThreads))
     ,
     #ifdef RC_BAM
     (   option("-bam-threads") &
         integer("#", opt.bamThreads)
             .if_missing([&]{ err += "Number missing after '-bam-threads'!"; })
-    ),
+    )
+        %("Sets the maximum number of parallel thread to use for BAM processing. "
+          "(In addition to threads of -threads parameter.\n"
+          "default: "s + to_string(opt.bamThreads))
+    ,
     #endif
     (   option("-batch-size", "-batchsize") &
         integer("#", opt.batchSize)
@@ -800,9 +826,11 @@ performance_options_cli(performance_tuning_options& opt, error_messages& err)
     ,
     #ifdef RC_BAM
     (   option("-bam-buffer") &
-        integer("#", opt.bamBufSize)
+        integer("t", opt.bamBufSize)
             .if_missing([&]{ err += "Number missing after '-bam-buffer'!"; })
     )
+        %("Sets pre-allocated size of buffer for BAM processing to 2^<t>.\n"
+          "default: "s + to_string(1<<opt.bamBufSize))
     ,
     #endif
     (   option("-query-limit", "-querylimit") &
@@ -857,16 +885,20 @@ query_mode_cli(query_options& opt, error_messages& err)
                     .set(opt.output.evaluate.determineGroundTruth, false)
         %("Generate output in SAM format instead of RNACache's default format. ")
         ,
+        (
         option("-with-sam-out").set(opt.output.samMode, sam_mode::sam) &
         value("file", opt.samFile)
             .if_missing([&]{ err += "Output filename missing after '-with-sam-out'!"; })
+        )
         %("Generates SAM format output in addition to default output. "
           "Output is redirected to <file>.")
         #ifdef RC_BAM
         ,
+        (
         option("-with-bam-out").set(opt.output.samMode, sam_mode::bam) &
         value("file", opt.samFile)
             .if_missing([&]{ err += "Output filename missing after '-with-bam-out'!"; })
+        )
         %("Generates BAM format output in addition to default output. "
           "Output is redirected to <file>.")
         #endif

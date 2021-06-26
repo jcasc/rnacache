@@ -43,8 +43,12 @@ public:
         return double(originMapped_) / totalReads_;
     }
 
-    double hits_per_reads() const noexcept {
+    double hits_per_read() const noexcept {
         return double(totalMatches_) / totalReads_;
+    }
+
+    double hits_per_aligned_read() const noexcept {
+        return double(totalMatches_) / alignedReads_;
     }
 
     double total_true_hit_rate() const noexcept {

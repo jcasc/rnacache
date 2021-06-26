@@ -327,7 +327,6 @@ struct bam_buffer
         
         if (ret < 0) {
             std::cerr << "!!! bam_set1 ERROR: " << ret << " !!!!" << std::endl;
-        } else {
         }
 
         if ((bam_get_mempolicy(&b) & BAM_USER_OWNS_DATA) != 0) {
@@ -760,30 +759,33 @@ void show_bam_alignment(bam_buffer& bam_buf, const sequence_query& query, const 
     size_t pos1 = (alignment.first.aligned() ? alignment.first.start() : alignment.second.start());
     size_t pos2 = (alignment.second.aligned() ? alignment.second.start() : alignment.first.start());
 
-    size_t l_cigar = 0;
+    size_t a_cigar = 0;
+    size_t n_cigar = 0;
     uint32_t *cigar = nullptr;
     const char* seq = query.seq1.data();
     string rcseq;
     
     if (alignment.first.aligned())
-        sam_parse_cigar(alignment.first.cigar(), nullptr, &cigar, &l_cigar);
+        n_cigar = sam_parse_cigar(alignment.first.cigar(), nullptr, &cigar, &a_cigar);
     
     if (alignment.first.orientation() == edlib_alignment::status::REVERSE)
         seq = (rcseq = make_reverse_complement(query.seq1)).data();
 
     // mate 1
-    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag1, tgt_id, pos1, 255, l_cigar, cigar,
+    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag1, tgt_id, pos1, 255, n_cigar, cigar,
                     tgt_id, pos2, tlen1, query.seq1.size(), seq, nullptr, 0);
 
     if (alignment.second.aligned())
-        sam_parse_cigar(alignment.second.cigar(), nullptr, &cigar, &l_cigar);
+        n_cigar = sam_parse_cigar(alignment.second.cigar(), nullptr, &cigar, &a_cigar);
+    else
+        n_cigar = 0;
     
     seq = query.seq2.data();
     if (alignment.second.orientation() == edlib_alignment::status::REVERSE)
         seq = (rcseq = make_reverse_complement(query.seq2)).data();
     
     // mate 2
-    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag2, tgt_id, pos2, 255, l_cigar, cigar,
+    bam_buf.add_bam(query.header.size()-2, query.header.data(), flag2, tgt_id, pos2, 255, n_cigar, cigar,
                     tgt_id, pos1, tlen2, query.seq2.size(), seq, nullptr, 0);
 
     free(cigar);
@@ -1005,10 +1007,6 @@ void map_queries_to_targets(const vector<string>& infiles,
                             const query_options& opt,
                             classification_results& results)
 {
-    std::cerr << db.query_sketcher().window_stride() << " " << db.query_sketcher().window_size() << " " << db.query_sketcher().sketch_size() << '\n'
-              << db.target_sketcher().window_stride() << " " << db.target_sketcher().window_size() << " " << db.target_sketcher().sketch_size() << std::endl;
-    std::cerr << opt.classify.hitsMin << " " << opt.classify.hitsCutoff << " " << opt.classify.covMin << " [" << (opt.classify.covNorm==coverage_norm::max?"NORM":"NO NORM") << "]" << std::endl;
-
     if(opt.output.format.showMapping)
         show_query_mapping_header(results.mainOut, opt.output);
     map_queries_to_targets_2pass(infiles, db, opt, results);

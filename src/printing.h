@@ -45,7 +45,7 @@ class classification_results;
  * @brief prints classification parameters
  *
  *****************************************************************************/
-void show_query_parameters(std::ostream&, const query_options&);
+void show_query_parameters(std::ostream&, const database& db, const query_options&);
 
 
 /*************************************************************************//**

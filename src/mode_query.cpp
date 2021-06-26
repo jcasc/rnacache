@@ -65,7 +65,11 @@ void process_input_files(const vector<string>& infiles,
         mapFile.open(queryMappingsFilename, std::ios::out);
 
         if(mapFile.good()) {
-            cerr << "Per-Read mappings will be written to file: " << queryMappingsFilename << '\n';
+            if (opt.output.samMode == sam_mode::sam && samFilename.empty())
+                cerr << "SAM will be written to file: " << queryMappingsFilename << '\n';
+            else
+                cerr << "Per-Read mappings will be written to file:" << queryMappingsFilename << '\n';
+            
             mainOut = &mapFile;
         }
         else {
@@ -91,7 +95,7 @@ void process_input_files(const vector<string>& infiles,
     classification_results results {*mainOut,*samOut};
 
     if(opt.output.showQueryParams) {
-        show_query_parameters(results.mainOut, opt);
+        show_query_parameters(results.mainOut, db, opt);
     }
 
     results.flush_all_streams();

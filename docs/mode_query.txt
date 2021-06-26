@@ -40,11 +40,11 @@ BASIC PARAMETERS
                       default format. 
 
 
-<file>                Generates SAM format output in addition to default output.
+-with-sam-out <file>  Generates SAM format output in addition to default output.
                       Output is redirected to <file>.
 
 
-<file>                Generates BAM format output in addition to default output.
+-with-bam-out <file>  Generates BAM format output in addition to default output.
                       Output is redirected to <file>.
 
 
@@ -69,10 +69,9 @@ PAIRED-END READ HANDLING
 
 CLASSIFICATION
 
-    -hitmin <t>       Sets classification threshhold 't^min' to <t>.
+    -hitmin <t>       Sets classification threshold 't^min' to <t>.
                       All candidates with fewer hits are discarded from the
-                      query's candidate set. Higher values will increase
-                      precision at the expense of recall.
+                      query's candidate set.
                       default: 4
 
     -maxcand <#>      Has no effect. (Requires selection of
@@ -83,9 +82,32 @@ CLASSIFICATION
     -hit-cutoff <t>   Sets classification threshhold 't^cutoff' to <t>.
                       All candidates with fewer hits (relative to the maximal
                       candidate) are discarded from the query's candidate set.
-                      Higher values will increase precision at the expense of
-                      recall.
                       default: 0.800000
+
+    -cov-min <p>      Sets classification coverage threshold 't^cov' to <t>
+                      Candidates on targets with lower coverage will be
+                      discarded.
+                      default: 0.900000
+
+    -align            Enables post-mapping alignment step and filters candidates
+                      accordingly. Candidates are only aligned during mapping
+                      phase, not during coverage phase. Alignments are only
+                      shown in SAM / BAM output modes.
+                      DRASTICALLY increases runtime!
+                      default: -1
+
+    -max-edit <t>     Maximum allowed edit distance of alignments (enables
+                      -align). Alignments with higher edit distance will not be
+                      considered. Higher values drastically increase runtime! -1
+                      = unlimited
+                      default: -1
+
+    -no-cov-norm      Disable max norm of coverage statistic.
+                      default: disabled
+
+    -fill-coverage    Include caps in candidates' contiguous window ranges in
+                      coverage. Waves 2nd coverage condition (see paper).
+                      default: disabled
 
 
 GENERAL OUTPUT FORMATTING
@@ -212,13 +234,20 @@ ADVANCED: DATABASE MODIFICATION
 
 ADVANCED: PERFORMANCE TUNING / TESTING
 
-    -threads <#>      Sets the maximum number of parallel threads to use.default
-                      (on this machine): 16
+    -threads <#>      Sets the maximum number of parallel threads to use.
+                      default (on this machine): 16
 
+    -bam-threads <#>  Sets the maximum number of parallel thread to use for BAM
+                      processing. (In addition to threads of -threads parameter.
+                      default: 16
 
     -batch-size <#>   Process <#> many queries (reads or read pairs) per thread
                       at once.
                       default (on this machine): 4096
+
+    -bam-buffer <t>   Sets pre-allocated size of buffer for BAM processing to
+                      2^<t>.
+                      default: 33554432
 
     -query-limit <#>  Classify at max. <#> queries (reads or read pairs) per
                       input file.

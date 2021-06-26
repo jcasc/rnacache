@@ -37,7 +37,7 @@
 namespace mc {
 
 //-----------------------------------------------------------------------------
-void show_query_parameters(std::ostream& os, const query_options& opt)
+void show_query_parameters(std::ostream& os, const database& db, const query_options& opt)
 {
     const auto& fmt = opt.output.format;
     const auto& comment = fmt.tokens.comment;
@@ -48,25 +48,6 @@ void show_query_parameters(std::ostream& os, const query_options& opt)
     }
     else {
         os << comment << "Per-Read mappings will not be shown.\n";
-    }
-
-    os << comment
-       << "Minimum hit threshold is "
-       << opt.classify.hitsMin << " per query\n";
-    
-    os << comment
-       << "Hit cutoff is "
-       << int(opt.classify.hitsCutoff*100) << "% of the maximal hit per query\n";
-
-    os << comment
-       << "Coverage cutoff is "
-       << int(opt.classify.covMin*100) << "% of the maximal candidate target coverage per query\n";
-
-    if (std::is_same<classification_candidates, best_distinct_matches_in_contiguous_window_ranges>()) {
-        os << comment
-           << "At maximum "
-           << opt.classify.maxNumCandidatesPerQuery
-           << " classification candidates will be considered per query.\n";
     }
 
     if(opt.pairing == pairing_mode::files) {
@@ -81,6 +62,42 @@ void show_query_parameters(std::ostream& os, const query_options& opt)
     }
 
     os << comment << "Using " << opt.performance.numThreads << " threads\n";
+
+    auto s = db.query_sketcher();
+    os << comment
+       << "k: " << int(s.kmer_size()) << '\n';
+
+    os << comment
+       << "Window length / stride / size (sketch): "
+       << s.window_size() << " / " << s.window_stride() << " / " << s.sketch_size() << '\n';
+    
+    if (std::is_same<classification_candidates, best_distinct_matches_in_contiguous_window_ranges>()) {
+        os << comment
+           << "At maximum "
+           << opt.classify.maxNumCandidatesPerQuery
+           << " classification candidates will be considered per query.\n";
+    }
+
+    os << comment
+       << "Minimum hit threshold: "
+       << opt.classify.hitsMin << " per candidate\n";
+    
+    os << comment
+       << "Hit cutoff: "
+       << int(opt.classify.hitsCutoff*100) << "% of the maximal candidate\n";
+
+    os << comment
+       << "Coverage cutoff: "
+       << int(opt.classify.covMin*100) << '%';
+
+    if (opt.classify.covNorm == coverage_norm::max)
+        os << " of the maximal candidate target coverage per query\n";
+    else if (opt.classify.covNorm == coverage_norm::none)
+        os << " of windows\n";
+    
+    if (opt.classify.covFill == coverage_fill::fill) {
+        os << "Coverage includes caps. (2nd coverage condition waived.)\n";
+    }
 }
 
 
@@ -94,13 +111,13 @@ void show_target_header(std::ostream& os,
     const auto& fmt = opt.tokens;
 
     if(style.showName) {
-        os << prefix << "tgtname";
+        os << prefix << "target_name";
         if(style.showId) {
-            os << fmt.tgtidPrefix << prefix << "tgtid" << fmt.tgtidSuffix;
+            os << fmt.tgtidPrefix << prefix << "target_id" << fmt.tgtidSuffix;
         }
     }
     else if(style.showId) {
-        os << prefix << "tgtid";
+        os << prefix << "target_id";
     }
 }
 
@@ -213,15 +230,28 @@ void show_statistics(std::ostream& os,
                      const std::string& prefix)
 {
     os << prefix << "Mapping statistics:\n"
-       << prefix << "Total Reads:         " << stats.total() << '\n'
-       << prefix << "Total Matches:       " << stats.matches() << '\n'
-       << prefix << "Origin Found:        " << stats.correct() << '\n'
-       << prefix << "Correctly Rejected:  " << stats.true_negatives() << '\n'
-       << prefix << "Reads Aligned:       " << stats.aligned() << '\n'
-       << prefix << "Recall:              " << stats.recall() << '\n'
-       << prefix << "Hits Per Read:       " << stats.hits_per_reads() << '\n'
-       << prefix << "Total True Hit Rate: " << stats.total_true_hit_rate() << '\n'
-       << prefix << "Mean True Hit Rate:  " << stats.mean_true_hit_rate() << '\n';
+       << prefix << "Total Reads (or pairs): " << stats.total() << '\n'
+       << prefix << "Total Matches:          " << stats.matches() << '\n'
+       << prefix << "Reads Aligned:          " << stats.aligned() << '\n'
+       << prefix << "Hits Per Read:          " << stats.hits_per_read() << '\n';
+}
+
+//-------------------------------------------------------------------
+void show_accuracy(std::ostream& os,
+                   const rna_mapping_statistics& stats,
+                   const std::string& prefix)
+{
+    os << prefix << "Accuracy statistics:\n"
+       << prefix << "Total reads (or pairs): " << stats.total() << '\n'
+       << prefix << "Total matches:          " << stats.matches() << '\n'
+       << prefix << "Origin found:           " << stats.correct() << '\n'
+       << prefix << "Correctly rejected:     " << stats.true_negatives() << '\n'
+       << prefix << "Reads aligned:          " << stats.aligned() << '\n'
+       << prefix << "Recall:                 " << stats.recall() << '\n'
+       << prefix << "Hits per read:          " << stats.hits_per_read() << '\n'
+       << prefix << "Hits per aligned read:  " << stats.hits_per_aligned_read() << '\n'
+       << prefix << "Total True Hit Rate:    " << stats.total_true_hit_rate() << '\n'
+       << prefix << "Mean True Hit Rate:     " << stats.mean_true_hit_rate() << '\n';
 }
 
 
@@ -245,11 +275,15 @@ void show_summary(const query_options& opt,
         << comment << "time:    " << results.time.milliseconds() << " ms\n"
         << comment << "speed:   " << speed << " queries/min\n";
 
-    if(opt.output.evaluate.statistics && statistics.total() > 0) {
-        show_statistics(results.mainOut, statistics, comment);
-    } else {
+    if(statistics.total() > 0) {
+        if (opt.output.evaluate.statistics) {
+            if (opt.output.evaluate.determineGroundTruth)
+                show_accuracy(results.mainOut, statistics, comment);
+            else
+                show_statistics(results.mainOut, statistics, comment);
+        }
+    } else
         results.mainOut << comment << "No valid query sequences found.\n";
-    }
 }
 
 

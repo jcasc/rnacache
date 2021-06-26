@@ -1,6 +1,4 @@
-## RNACache currently undergoing intense refactoring. Version 1.0.0 will be released soon! (The main branch is functional.)
-
-# RNACache v0.9.3
+# RNACache v1.0.0
 
 RNACache is a transcriptomic mapping tool that maps RNA-seq reads directly to a transcriptomes using MinHashing, a locality sensitive hashing technique based on pseudo-random k-mer subampling, and several filters utilizing both per-read and read-global information. More information about its algorithm can be found in the [paper](https://doi.org/10.1007/978-3-030-77961-0_31).
 
