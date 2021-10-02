@@ -212,7 +212,7 @@ public:
         target_name name_;
         file_source source_;
         
-        // only used in alignment mode
+        // only used in SAM/BAM/align modes
         std::string header_;
         sequence seq_;
     };

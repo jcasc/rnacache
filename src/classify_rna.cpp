@@ -935,6 +935,11 @@ void map_queries_to_targets_2pass(
     query_database(infiles, db, opt.pairing, opt.performance,
                    makeCovBuffer, processCoverage, mergeCoverage,
                    appendToOutput);
+
+
+    #ifdef RC_PRINT_COV
+    print_coverage_profiles(db, coverage_);
+    #endif
     
     if (opt.output.samMode == sam_mode::sam)
         db.show_sam_header(results.samOut);

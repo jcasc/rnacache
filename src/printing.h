@@ -135,6 +135,16 @@ void print_static_properties(const database&);
 void print_content_properties(const database&);
 
 
+
+//-----------------------------------------------------------------------------
+void print_coverages(const database& db, matches_per_target_light& mpt);
+
+
+
+//-----------------------------------------------------------------------------
+void print_coverage_profiles(const database& db, matches_per_target_light& mpt);
+
+
 } // namespace mc
 
 

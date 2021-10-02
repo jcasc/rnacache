@@ -354,4 +354,34 @@ void print_content_properties(const database& db)
 }
 
 
+
+//-----------------------------------------------------------------------------
+void print_coverages(const database& db, matches_per_target_light& mpt)
+{
+    for (size_t i = 0; i < db.target_count(); ++i) {
+        auto& tgt = db.get_target(i);
+        std::cout << tgt.name() << " " << tgt.source().windows << " " << mpt.num_hits(i) << " " << double(mpt.num_hits(i))/tgt.source().windows << "\n";
+    }
+}
+
+
+
+//-----------------------------------------------------------------------------
+void print_coverage_profiles(const database& db, matches_per_target_light& mpt)
+{
+    for (size_t i = 0; i < db.target_count(); ++i) {
+        auto& tgt = db.get_target(i);
+        std::cout << tgt.name() << ' ' << tgt.source().windows << ' ' << mpt.num_hits(i) << " " << double(mpt.num_hits(i))/tgt.source().windows;
+        if (mpt.num_hits(i) > 0) {
+            std::cout << " :";
+            for (auto& win: mpt.find(i)->second)
+                std::cout << ' ' << win;
+        }
+        std::cout << '\n';
+    }
+} 
+
+
+
+
 } // namespace mc
