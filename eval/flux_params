@@ -1,0 +1,37 @@
+REF_FILE_NAME   ./annotation_sim.gtf
+GEN_DIR    ../genome
+
+TMP_DIR .
+
+## Library preparation
+# Expression
+NB_MOLECULES    7000000
+TSS_MEAN	50
+POLYA_SCALE     100
+POLYA_SHAPE     1.5
+
+# Fragmentation
+FRAG_SUBSTRATE	RNA
+FRAG_METHOD	UR
+FRAG_UR_ETA     350
+
+# Reverse Transcription
+RTRANSCRIPTION	YES
+RT_MOTIF	default
+
+# Amplification 
+PCR_DISTRIBUTION default
+GC_MEAN 	 NaN
+PCR_PROBABILITY  0.05
+
+# Size Filtering
+FILTERING 	YES
+
+## Sequencing
+READ_NUMBER	100000000
+READ_LENGTH	76
+PAIRED_END	YES
+ERR_FILE	76
+
+FASTA		YES
+UNIQUE_IDS	YES

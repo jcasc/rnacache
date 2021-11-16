@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+import sys
+from random import choice
+with open(sys.argv[1], "r") as infile, open("reads1.fq", "w") as out1, open("reads2.fq", "w") as out2:
+    lines = 8
+    for line in infile:
+        if lines == 4:
+            out = out2 if out==out1 else out1
+            out.write(line[:-2]+("1" if out==out1 else "2")+'\n')
+        elif lines == 8 and line[-2] in ['1','2']:
+            lines = 0
+            out = choice([out1,out2])
+            out.write(line[:-2]+("1" if out==out1 else "2")+'\n')
+        else:
+            out.write(line)
+        lines += 1
+

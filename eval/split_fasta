@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+
+import sys
+from random import choice
+with open(sys.argv[1], "r") as infile:
+    with open("reads1.fa", "w") as out1:
+        with open("reads2.fa", "w") as out2:
+            out_set = False
+            for line in infile:
+                if line[-2] in ['1','2']:
+                    if not out_set:
+                        out = choice([out1,out2])
+                        out_set = True
+                        out.write(line[:-2]+("1" if out==out1 "2" else)+'\n')
+                    else:
+                        out = out2 if out==out1 else out2
+                        out_set = False
+                out.write(line)
